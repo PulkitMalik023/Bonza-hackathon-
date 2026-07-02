@@ -89,4 +89,20 @@ void main() {
     expect(matched.length, 1);
     expect(matched.first.answer, 'RED');
   });
+
+  test('expandScanScopeWithLineSegments includes full horizontal run', () {
+    final board = {
+      const BoardCellPosition(row: 0, col: 0): 'F',
+      const BoardCellPosition(row: 0, col: 1): 'O',
+      const BoardCellPosition(row: 0, col: 2): 'R',
+      const BoardCellPosition(row: 0, col: 3): 'K',
+    };
+
+    final expanded = expandScanScopeWithLineSegments(
+      baseScope: {const BoardCellPosition(row: 0, col: 3)},
+      board: board,
+    );
+
+    expect(expanded, board.keys.toSet());
+  });
 }

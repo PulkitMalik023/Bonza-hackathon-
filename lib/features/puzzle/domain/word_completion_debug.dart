@@ -38,24 +38,26 @@ void logPiecePlacementResult({
 void logMatrixCompletionScan({
   required Set<String> targetAnswers,
   required Set<String> completedAnswers,
-  required Set<BoardCellPosition> affectedCells,
+  required Set<BoardCellPosition> scanScopeCells,
   required Map<BoardCellPosition, String> playAreaBoard,
   required List<MatchedBoardLine> matchedLines,
+  String source = 'boardChange',
 }) {
   if (!kLogPuzzleCompletion) {
     return;
   }
 
   debugPrint(
-    '$_logTag matrixScan targets=${targetAnswers.length} '
+    '$_logTag matrixScan source=$source '
+    'targets=${targetAnswers.length} '
     'completed=${completedAnswers.length} '
-    'affectedCells=${affectedCells.length} '
+    'scanScopeCells=${scanScopeCells.length} '
     'playAreaCells=${playAreaBoard.length}',
   );
 
   final candidates = collectCandidateLines(
     board: playAreaBoard,
-    affectedCells: affectedCells,
+    affectedCells: scanScopeCells,
   );
 
   for (final line in candidates.values) {

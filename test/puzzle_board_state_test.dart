@@ -64,4 +64,54 @@ void main() {
       const BoardCellPosition(row: 2, col: 1),
     });
   });
+
+  test('getAllPlayAreaCells returns every occupied play-area key', () {
+    final board = {
+      const BoardCellPosition(row: 0, col: 0): 'A',
+      const BoardCellPosition(row: 1, col: 2): 'B',
+    };
+
+    expect(getAllPlayAreaCells(board), board.keys.toSet());
+  });
+
+  test('getConnectedPlayAreaCells flood-fills from seeds', () {
+    final board = {
+      const BoardCellPosition(row: 0, col: 0): 'R',
+      const BoardCellPosition(row: 0, col: 1): 'E',
+      const BoardCellPosition(row: 0, col: 2): 'D',
+      const BoardCellPosition(row: 1, col: 2): 'X',
+      const BoardCellPosition(row: 2, col: 2): 'Y',
+      const BoardCellPosition(row: 5, col: 5): 'Z',
+    };
+
+    final connected = getConnectedPlayAreaCells(
+      seedCells: {const BoardCellPosition(row: 2, col: 2)},
+      playAreaBoard: board,
+    );
+
+    expect(connected, {
+      const BoardCellPosition(row: 0, col: 0),
+      const BoardCellPosition(row: 0, col: 1),
+      const BoardCellPosition(row: 0, col: 2),
+      const BoardCellPosition(row: 1, col: 2),
+      const BoardCellPosition(row: 2, col: 2),
+    });
+    expect(connected.contains(const BoardCellPosition(row: 5, col: 5)), isFalse);
+  });
+
+  test('buildBoardChangeScanScope includes full horizontal line segment', () {
+    final board = {
+      const BoardCellPosition(row: 0, col: 0): 'F',
+      const BoardCellPosition(row: 0, col: 1): 'O',
+      const BoardCellPosition(row: 0, col: 2): 'R',
+      const BoardCellPosition(row: 0, col: 3): 'K',
+    };
+
+    final scope = buildBoardChangeScanScope(
+      affectedCells: {const BoardCellPosition(row: 0, col: 3)},
+      playAreaBoard: board,
+    );
+
+    expect(scope, board.keys.toSet());
+  });
 }

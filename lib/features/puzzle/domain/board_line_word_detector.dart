@@ -152,3 +152,24 @@ List<MatchedBoardLine> findNewlyCompletedLines({
 Set<String> normalizeTargetAnswers(List<String> words) {
   return words.map((word) => word.toUpperCase()).toSet();
 }
+
+Set<BoardCellPosition> expandScanScopeWithLineSegments({
+  required Set<BoardCellPosition> baseScope,
+  required Map<BoardCellPosition, String> board,
+}) {
+  final expanded = <BoardCellPosition>{...baseScope};
+
+  for (final cell in baseScope) {
+    final horizontal = getHorizontalLineFromCell(cell.row, cell.col, board);
+    if (horizontal != null) {
+      expanded.addAll(horizontal.cellsInReadOrder);
+    }
+
+    final vertical = getVerticalLineFromCell(cell.row, cell.col, board);
+    if (vertical != null) {
+      expanded.addAll(vertical.cellsInReadOrder);
+    }
+  }
+
+  return expanded;
+}

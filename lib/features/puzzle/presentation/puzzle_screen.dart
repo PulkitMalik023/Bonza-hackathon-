@@ -12,13 +12,10 @@ import '../data/models/puzzle_content.dart';
 import '../data/models/puzzle_layout.dart';
 import '../data/repositories/puzzle_repository.dart';
 import '../domain/board_geometry.dart';
-import '../domain/board_line_word_detector.dart';
-import '../domain/completed_cluster_builder.dart';
-import '../domain/completed_word_grouper.dart';
+import '../domain/completion_scan_service.dart';
 import '../domain/deconstructed_pieces_builder.dart';
 import '../domain/puzzle_board_state.dart';
 import '../domain/puzzle_piece.dart';
-import '../domain/puzzle_solved_checker.dart';
 import '../domain/solved_layout_piece_builder.dart';
 import '../domain/word_pieces_builder.dart';
 import '../domain/word_completion_debug.dart';
@@ -98,6 +95,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
             canvasRows: canvasRows,
             canvasCols: canvasCols,
           );
+          _scheduleCompletionScanOnInit();
         }
       });
     });
@@ -143,6 +141,44 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
           canvasCols: canvasCols,
         );
     }
+  }
+
+  void _scheduleCompletionScanOnInit() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _scanCompletionOnInit();
+    });
+  }
+
+  void _scanCompletionOnInit() {
+    if (_puzzleCompletionHandled) {
+      return;
+    }
+
+    final puzzle = _puzzle;
+    if (puzzle == null) {
+      return;
+    }
+
+    final playAreaBoard = buildPlayAreaLetterMap(_playPieces);
+    final scanScope = buildInitializationScanScope(playAreaBoard);
+    if (scanScope.isEmpty) {
+      return;
+    }
+
+    _lastEvaluatedPiecesSnapshot = null;
+
+    final result = runCompletionScan(
+      pieces: _playPieces,
+      scanScopeCells: scanScope,
+      targetWords: puzzle.words,
+      completedAnswers: _completedAnswers,
+      source: CompletionScanSource.initialization,
+    );
+
+    _applyCompletionScanResult(result);
   }
 
   Future<void> _loadAndGenerate() async {
@@ -246,6 +282,8 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       }
     });
 
+    _scheduleCompletionScanOnInit();
+
     debugPrint(
       '[PuzzleScreen] Shuffled to layout ${_currentLayoutIndex + 1} / ${_layouts.length}',
     );
@@ -299,69 +337,46 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     }
     _lastEvaluatedPiecesSnapshot = snapshot;
 
-    final targetAnswers = normalizeTargetAnswers(puzzle.words);
     final playAreaBoard = buildPlayAreaLetterMap(event.pieces);
+    final scanScope = buildBoardChangeScanScope(
+      affectedCells: event.affectedCells,
+      playAreaBoard: playAreaBoard,
+    );
 
-    final playAreaAffected = event.affectedCells
-        .where((cell) => playAreaBoard.containsKey(cell))
-        .toSet();
-
-    if (playAreaAffected.isEmpty) {
+    if (scanScope.isEmpty) {
       logCompletionSkipped('affected cells are outside play area');
       return;
     }
 
-    final matchedLines = findNewlyCompletedLines(
-      board: playAreaBoard,
-      affectedCells: playAreaAffected,
-      targetAnswers: targetAnswers,
+    final result = runCompletionScan(
+      pieces: event.pieces,
+      scanScopeCells: scanScope,
+      targetWords: puzzle.words,
       completedAnswers: _completedAnswers,
+      source: CompletionScanSource.boardChange,
     );
 
-    logMatrixCompletionScan(
-      targetAnswers: targetAnswers,
-      completedAnswers: _completedAnswers,
-      affectedCells: playAreaAffected,
-      playAreaBoard: playAreaBoard,
-      matchedLines: matchedLines,
-    );
-
-    if (matchedLines.isEmpty) {
-      return;
-    }
-
-    final clusters = buildCompletedClusters(matchedLines);
-    var updatedPieces = event.pieces;
-    var completedChanged = false;
-
-    for (final cluster in clusters) {
-      updatedPieces = applyCompletedClusterGrouping(
-        pieces: updatedPieces,
-        cluster: cluster,
-      );
-      _completedAnswers = {..._completedAnswers, ...cluster.answers};
-      completedChanged = true;
+    if (result.hasChanges) {
       _lastEvaluatedPiecesSnapshot = null;
     }
 
-    final allAnswersCompleted = areAllTargetAnswersCompleted(
-      puzzle.words,
-      _completedAnswers,
-    );
+    _applyCompletionScanResult(result);
+  }
 
-    logPuzzleAnswersCompletion(
-      targetWords: puzzle.words,
-      completedAnswers: _completedAnswers,
-      isComplete: allAnswersCompleted,
-    );
-
-    if (completedChanged) {
-      setState(() {
-        _playPieces = updatedPieces;
-      });
+  void _applyCompletionScanResult(CompletionScanResult result) {
+    if (!result.hasChanges) {
+      if (result.allAnswersCompleted && !_puzzleCompletionHandled) {
+        _onPuzzleCompleted();
+      }
+      return;
     }
 
-    if (allAnswersCompleted) {
+    setState(() {
+      _playPieces = result.pieces;
+      _completedAnswers = result.completedAnswers;
+    });
+
+    if (result.allAnswersCompleted) {
       _onPuzzleCompleted();
     }
   }

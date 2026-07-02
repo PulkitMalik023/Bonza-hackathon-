@@ -29,6 +29,18 @@ void main() {
     );
   }
 
+  Map<BoardCellPosition, String> playAreaBoardFromMatches(
+    List<MatchedBoardLine> matched,
+  ) {
+    final board = <BoardCellPosition, String>{};
+    for (final match in matched) {
+      for (var index = 0; index < match.line.cellsInReadOrder.length; index++) {
+        board[match.line.cellsInReadOrder[index]] = match.line.text[index];
+      }
+    }
+    return board;
+  }
+
   test('overlapping horizontal and vertical words merge into one cluster', () {
     final matched = [
       line(
@@ -51,7 +63,11 @@ void main() {
       ),
     ];
 
-    final clusters = buildCompletedClusters(matched);
+    final clusters = buildCompletedClusters(
+      matched,
+      pieces: const [],
+      playAreaBoard: playAreaBoardFromMatches(matched),
+    );
 
     expect(clusters, hasLength(1));
     expect(clusters.first.answers, {'CAT', 'CAR'});
@@ -81,7 +97,11 @@ void main() {
       ),
     ];
 
-    final clusters = buildCompletedClusters(matched);
+    final clusters = buildCompletedClusters(
+      matched,
+      pieces: const [],
+      playAreaBoard: playAreaBoardFromMatches(matched),
+    );
 
     expect(clusters, hasLength(2));
   });

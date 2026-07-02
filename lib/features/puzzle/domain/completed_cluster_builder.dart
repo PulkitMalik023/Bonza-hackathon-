@@ -1,6 +1,7 @@
 import 'board_cell_position.dart';
 import 'board_line_word_detector.dart';
 import 'puzzle_board_state.dart';
+import 'puzzle_piece.dart';
 
 class CompletedCluster {
   CompletedCluster({
@@ -14,7 +15,11 @@ class CompletedCluster {
   String get id => clusterKeyFromCells(cells);
 }
 
-List<CompletedCluster> buildCompletedClusters(List<MatchedBoardLine> matchedLines) {
+List<CompletedCluster> buildCompletedClusters(
+  List<MatchedBoardLine> matchedLines, {
+  required List<PuzzlePiece> pieces,
+  required Map<BoardCellPosition, String> playAreaBoard,
+}) {
   if (matchedLines.isEmpty) {
     return const [];
   }
@@ -49,31 +54,32 @@ List<CompletedCluster> buildCompletedClusters(List<MatchedBoardLine> matchedLine
     }
   }
 
-  final grouped = <int, CompletedCluster>{};
+  final groupedAnswers = <int, Set<String>>{};
+  final groupedMatchedCells = <int, Set<BoardCellPosition>>{};
 
   for (var index = 0; index < matchedLines.length; index++) {
     final root = find(index);
     final match = matchedLines[index];
-    final existing = grouped[root];
 
-    final lineCells = <BoardCellPosition, String>{};
-    for (var cellIndex = 0; cellIndex < match.line.cellsInReadOrder.length; cellIndex++) {
-      lineCells[match.line.cellsInReadOrder[cellIndex]] = match.line.text[cellIndex];
-    }
-
-    if (existing == null) {
-      grouped[root] = CompletedCluster(
-        answers: {match.answer},
-        cells: lineCells,
-      );
-      continue;
-    }
-
-    grouped[root] = CompletedCluster(
-      answers: {...existing.answers, match.answer},
-      cells: {...existing.cells, ...lineCells},
-    );
+    groupedAnswers[root] = {
+      ...?groupedAnswers[root],
+      match.answer,
+    };
+    groupedMatchedCells[root] = {
+      ...?groupedMatchedCells[root],
+      ...match.line.cellsInReadOrder,
+    };
   }
 
-  return grouped.values.toList();
+  return groupedAnswers.entries.map((entry) {
+    final matchedCells = groupedMatchedCells[entry.key]!;
+    return CompletedCluster(
+      answers: entry.value,
+      cells: expandToContributingComponentCells(
+        matchedCells: matchedCells,
+        pieces: pieces,
+        playAreaBoard: playAreaBoard,
+      ),
+    );
+  }).toList();
 }
