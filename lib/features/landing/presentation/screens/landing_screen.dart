@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../puzzle/data/models/puzzle_definition.dart';
-import '../../../puzzle/data/sources/puzzle_content_loader.dart';
+import '../../../puzzle/data/models/puzzle_content.dart';
+import '../../../puzzle/data/repositories/puzzle_repository.dart';
 import '../../../puzzle/presentation/puzzle_screen.dart';
 import '../../../../core/constants/board_constants.dart';
 import '../../../shared/widgets/grid_background.dart';
@@ -15,7 +15,7 @@ class LandingScreen extends StatefulWidget {
 }
 
 class _LandingScreenState extends State<LandingScreen> {
-  List<PuzzleDefinition>? _puzzles;
+  List<PuzzleContent>? _puzzles;
   String? _errorMessage;
   bool _isLoading = true;
 
@@ -33,7 +33,7 @@ class _LandingScreenState extends State<LandingScreen> {
     });
 
     try {
-      final puzzles = await PuzzleContentLoader().loadPuzzles();
+      final puzzles = await PuzzleRepository().loadPuzzles();
       debugPrint('[LandingScreen] Loaded ${puzzles.length} puzzles');
 
       if (!mounted) {
@@ -59,14 +59,14 @@ class _LandingScreenState extends State<LandingScreen> {
     }
   }
 
-  void _openPuzzle(int index) {
+  void _openPuzzle(int puzzleId) {
     debugPrint(
-      '[LandingScreen] Tapped level ${index + 1} (puzzleIndex: $index)',
+      '[LandingScreen] Tapped level $puzzleId (puzzleId: $puzzleId)',
     );
 
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => PuzzleScreen(puzzleIndex: index),
+        builder: (_) => PuzzleScreen(puzzleId: puzzleId),
       ),
     );
   }
@@ -114,38 +114,65 @@ class _LandingScreenState extends State<LandingScreen> {
       );
     }
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(BoardConstants.kBoardOuterPadding),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(
-            'Jam Pro',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-            textAlign: TextAlign.center,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            BoardConstants.kBoardOuterPadding,
+            16,
+            BoardConstants.kBoardOuterPadding,
+            8,
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Choose a Level',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-            textAlign: TextAlign.center,
+          child: Column(
+            children: [
+              Text(
+                'Jam Pro',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Choose a Level',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
-          const SizedBox(height: BoardConstants.kBoardOuterPadding),
-          for (var index = 0; index < puzzles.length; index++) ...[
-            LevelButton(
-              label: 'LEVEL ${index + 1}',
-              onTap: () => _openPuzzle(index),
+        ),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(
+              BoardConstants.kBoardOuterPadding,
+              8,
+              BoardConstants.kBoardOuterPadding,
+              BoardConstants.kBoardOuterPadding,
             ),
-            if (index < puzzles.length - 1)
-              const SizedBox(height: BoardConstants.kLevelButtonSpacing),
-          ],
-        ],
-      ),
+            itemCount: puzzles.length,
+            itemBuilder: (context, index) {
+              final puzzle = puzzles[index];
+
+              return Padding(
+                padding: const EdgeInsets.only(
+                  bottom: BoardConstants.kLevelButtonSpacing,
+                ),
+                child: Center(
+                  child: LevelButton(
+                    label: 'LEVEL ${puzzle.id}',
+                    subtitle: puzzle.category,
+                    onTap: () => _openPuzzle(puzzle.id),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

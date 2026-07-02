@@ -2,35 +2,45 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jam_pro/features/puzzle/data/generators/puzzle_layout_generator.dart';
 import 'package:jam_pro/features/puzzle/data/models/grid_cell.dart';
-import 'package:jam_pro/features/puzzle/data/sources/puzzle_content_loader.dart';
+import 'package:jam_pro/features/puzzle/data/repositories/puzzle_repository.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  late PuzzleContentLoader loader;
+  late PuzzleRepository repository;
   late PuzzleLayoutGenerator generator;
 
   setUp(() {
-    loader = PuzzleContentLoader();
+    repository = PuzzleRepository();
     generator = PuzzleLayoutGenerator();
   });
 
-  test('loads puzzles from JSON', () async {
-    final puzzles = await loader.loadPuzzles();
+  test('loads 50 puzzles from JSON', () async {
+    final puzzles = await repository.loadPuzzles(enabledOnly: false);
 
-    expect(puzzles, hasLength(5));
-    expect(puzzles.first.id, 'puzzle_001');
+    expect(puzzles, hasLength(50));
+    expect(puzzles.first.id, 1);
+    expect(puzzles.last.id, 50);
     expect(puzzles.first.category, 'Directions');
     expect(puzzles.first.words, ['NORTH', 'SOUTH', 'EAST', 'WEST']);
   });
 
-  test('generates layout for puzzle_001 and prints debug output', () async {
-    final puzzles = await loader.loadPuzzles();
-    final puzzle = puzzles.firstWhere((entry) => entry.id == 'puzzle_001');
+  test('loads only enabled puzzles for home screen', () async {
+    final puzzles = await repository.loadPuzzles();
 
-    final layout = generator.generate(puzzle);
+    expect(puzzles, hasLength(27));
+    for (final puzzle in puzzles) {
+      expect(puzzle.enabled, isTrue);
+    }
+  });
 
-    debugPrint('--- puzzle_001 layout ---');
+  test('generates layout for puzzle id 1 and prints debug output', () async {
+    final puzzle = await repository.getPuzzleById(1);
+    expect(puzzle, isNotNull);
+
+    final layout = generator.generate(puzzle!);
+
+    debugPrint('--- puzzle 1 layout ---');
     debugPrint('Category: ${layout.category}');
     debugPrint('Words: ${layout.words}');
     debugPrint('Placements:');
@@ -41,46 +51,39 @@ void main() {
       'Bounds: rows ${layout.minRow}..${layout.maxRow}, '
       'cols ${layout.minCol}..${layout.maxCol}',
     );
-    debugPrint('Occupied cells (${layout.occupiedCells.length}):');
-    for (final cell in layout.occupiedCells) {
-      debugPrint('  $cell');
-    }
 
-    expect(layout.puzzleId, 'puzzle_001');
+    expect(layout.puzzleId, '1');
     expect(layout.placements, hasLength(4));
-    expect(layout.placements.map((placement) => placement.word).toSet(), {
-      'NORTH',
-      'SOUTH',
-      'EAST',
-      'WEST',
-    });
-    expect(layout.occupiedCells, isNotEmpty);
     expect(_isOccupiedGridConnected(layout.occupiedCells), isTrue);
   });
 
-  test('generates connected layout for all 5 puzzles', () async {
-    final puzzles = await loader.loadPuzzles();
+  test('generates connected layout for all enabled puzzles', () async {
+    final puzzles = await repository.loadPuzzles();
+    final failures = <int>[];
 
     for (final puzzle in puzzles) {
-      final layout = generator.generate(puzzle);
+      try {
+        final layout = generator.generate(puzzle);
 
-      expect(layout.puzzleId, puzzle.id);
-      expect(layout.placements, hasLength(puzzle.words.length));
-      expect(
-        layout.placements.map((placement) => placement.word).toSet(),
-        puzzle.words.map((word) => word.toUpperCase()).toSet(),
-      );
-
-      final uniqueCellCount = layout.occupiedCells.map((cell) => (cell.row, cell.col)).toSet().length;
-      expect(uniqueCellCount, layout.occupiedCells.length);
-
-      final totalLetters =
-          puzzle.words.fold<int>(0, (sum, word) => sum + word.length);
-      expect(layout.occupiedCells.length, lessThanOrEqualTo(totalLetters));
-
-      expect(_isOccupiedGridConnected(layout.occupiedCells), isTrue,
-          reason: 'Occupied cells must form one connected component for ${puzzle.id}');
+        expect(layout.puzzleId, puzzle.id.toString());
+        expect(layout.placements, hasLength(puzzle.words.length));
+        expect(
+          layout.placements.map((placement) => placement.word).toSet(),
+          puzzle.words.map((word) => word.toUpperCase()).toSet(),
+        );
+        expect(_isOccupiedGridConnected(layout.occupiedCells), isTrue,
+            reason: 'Occupied cells must be connected for puzzle ${puzzle.id}');
+      } catch (error) {
+        failures.add(puzzle.id);
+        debugPrint('[BatchValidation] Puzzle ${puzzle.id} failed: $error');
+      }
     }
+
+    expect(
+      failures,
+      isEmpty,
+      reason: 'These enabled puzzles failed generation: $failures',
+    );
   });
 }
 

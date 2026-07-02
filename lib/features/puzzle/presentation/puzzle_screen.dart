@@ -6,16 +6,16 @@ import '../../../core/constants/board_constants.dart';
 import '../../shared/widgets/grid_background.dart';
 import '../data/generators/puzzle_layout_generator.dart';
 import '../data/models/generated_puzzle_layout.dart';
-import '../data/sources/puzzle_content_loader.dart';
+import '../data/repositories/puzzle_repository.dart';
 import 'widgets/solved_grid_board.dart';
 
 class PuzzleScreen extends StatefulWidget {
   const PuzzleScreen({
     super.key,
-    required this.puzzleIndex,
+    required this.puzzleId,
   });
 
-  final int puzzleIndex;
+  final int puzzleId;
 
   @override
   State<PuzzleScreen> createState() => _PuzzleScreenState();
@@ -33,7 +33,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   }
 
   Future<void> _loadAndGenerate() async {
-    debugPrint('[PuzzleScreen] Rendering puzzleIndex: ${widget.puzzleIndex}');
+    debugPrint('[PuzzleScreen] Rendering puzzleId: ${widget.puzzleId}');
 
     setState(() {
       _isLoading = true;
@@ -42,15 +42,16 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     });
 
     try {
-      final puzzles = await PuzzleContentLoader().loadPuzzles();
+      final puzzle = await PuzzleRepository().getPuzzleById(widget.puzzleId);
 
-      if (widget.puzzleIndex < 0 || widget.puzzleIndex >= puzzles.length) {
-        throw StateError(
-          'Puzzle index ${widget.puzzleIndex} is out of range (0..${puzzles.length - 1})',
-        );
+      if (puzzle == null) {
+        throw StateError('Puzzle ${widget.puzzleId} was not found');
       }
 
-      final puzzle = puzzles[widget.puzzleIndex];
+      if (!puzzle.enabled) {
+        throw StateError('Puzzle ${widget.puzzleId} is disabled');
+      }
+
       final layout = PuzzleLayoutGenerator().generate(puzzle);
 
       debugPrint('[PuzzleScreen] Loaded puzzle: ${layout.puzzleId}');
@@ -82,10 +83,24 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       }
 
       setState(() {
-        _errorMessage = error.toString();
+        _errorMessage = _userFacingError(error);
         _isLoading = false;
       });
     }
+  }
+
+  String _userFacingError(Object error) {
+    if (error is StateError &&
+        error.message.contains('Could not generate connected layout')) {
+      return 'Unable to generate puzzle grid for this content';
+    }
+
+    if (error is StateError &&
+        error.message.contains('cannot form a connected graph')) {
+      return 'Unable to generate puzzle grid for this content';
+    }
+
+    return error.toString();
   }
 
   @override
@@ -95,7 +110,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: Text(layout?.category ?? 'Puzzle ${widget.puzzleIndex + 1}'),
+        title: Text(layout?.category ?? 'Puzzle ${widget.puzzleId}'),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),

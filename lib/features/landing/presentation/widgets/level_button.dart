@@ -8,9 +8,11 @@ class LevelButton extends StatelessWidget {
     super.key,
     required this.label,
     required this.onTap,
+    this.subtitle,
   });
 
   final String label;
+  final String? subtitle;
   final VoidCallback onTap;
 
   @override
@@ -35,14 +37,29 @@ class LevelButton extends StatelessWidget {
               width: 1,
             ),
           ),
-          child: Text(
-            label,
-            style: const TextStyle(
-              color: AppTheme.nodeTextColor,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-              letterSpacing: 1.2,
-            ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  color: AppTheme.nodeTextColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  subtitle!,
+                  style: TextStyle(
+                    color: AppTheme.nodeTextColor.withValues(alpha: 0.75),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ),

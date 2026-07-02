@@ -4,22 +4,23 @@ import 'package:flutter/foundation.dart';
 
 import '../models/generated_puzzle_layout.dart';
 import '../models/grid_cell.dart';
-import '../models/puzzle_definition.dart';
+import '../models/puzzle_content.dart';
 import '../models/word_placement.dart';
 
 class PuzzleLayoutGenerator {
-  GeneratedPuzzleLayout generate(PuzzleDefinition definition) {
-    final words = definition.words.map((word) => word.toUpperCase()).toList();
+  GeneratedPuzzleLayout generate(PuzzleContent content) {
+    final words = content.words.map((word) => word.toUpperCase()).toList();
+    final puzzleId = content.id.toString();
 
     if (words.isEmpty) {
       throw StateError(
-        'Could not generate connected layout for puzzle ${definition.id}',
+        'Could not generate connected layout for puzzle $puzzleId',
       );
     }
 
     if (!_canPotentiallyConnect(words)) {
       throw StateError(
-        'Puzzle ${definition.id} words cannot form a connected graph '
+        'Puzzle $puzzleId words cannot form a connected graph '
         '(no shared letters between components)',
       );
     }
@@ -34,8 +35,8 @@ class PuzzleLayoutGenerator {
       });
 
     debugPrint(
-      '[PuzzleLayoutGenerator] Generating layout for ${definition.id} '
-      '(${definition.category}) with words: $sortedWords',
+      '[PuzzleLayoutGenerator] Generating layout for $puzzleId '
+      '(${content.category}) with words: $sortedWords',
     );
 
     final occupied = <String, String>{};
@@ -62,14 +63,14 @@ class PuzzleLayoutGenerator {
 
     if (!success) {
       throw StateError(
-        'Could not generate connected layout for puzzle ${definition.id}',
+        'Could not generate connected layout for puzzle $puzzleId',
       );
     }
 
     final occupiedCells = _buildOccupiedCells(occupied);
     final bounds = _computeBounds(occupiedCells);
 
-    debugPrint('[PuzzleLayoutGenerator] Final placements for ${definition.id}:');
+    debugPrint('[PuzzleLayoutGenerator] Final placements for $puzzleId:');
     for (final placement in placements) {
       debugPrint('  $placement');
     }
@@ -81,8 +82,8 @@ class PuzzleLayoutGenerator {
     );
 
     return GeneratedPuzzleLayout(
-      puzzleId: definition.id,
-      category: definition.category,
+      puzzleId: puzzleId,
+      category: content.category,
       words: sortedWords,
       placements: List.unmodifiable(placements),
       occupiedCells: List.unmodifiable(occupiedCells),
