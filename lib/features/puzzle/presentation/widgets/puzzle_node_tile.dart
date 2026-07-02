@@ -8,11 +8,13 @@ class PuzzleNodeTile extends StatelessWidget {
     required this.character,
     required this.tileSize,
     this.isDragging = false,
+    this.showBorder = true,
   });
 
   final String character;
   final double tileSize;
   final bool isDragging;
+  final bool showBorder;
 
   @override
   Widget build(BuildContext context) {
@@ -22,10 +24,12 @@ class PuzzleNodeTile extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: AppTheme.nodeBackgroundColor,
-          border: Border.all(
-            color: AppTheme.nodeBorderColor,
-            width: 1,
-          ),
+          border: showBorder
+              ? Border.all(
+                  color: AppTheme.nodeBorderColor,
+                  width: 1,
+                )
+              : null,
           boxShadow: isDragging
               ? const [
                   BoxShadow(

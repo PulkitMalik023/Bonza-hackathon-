@@ -5,11 +5,13 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/board_constants.dart';
 import '../../shared/widgets/grid_background.dart';
 import '../data/generators/puzzle_layout_generator.dart';
-import '../data/models/generated_puzzle_layout.dart';
 import '../data/models/puzzle_content.dart';
 import '../data/models/puzzle_layout.dart';
 import '../data/repositories/puzzle_repository.dart';
-import 'widgets/solved_grid_board.dart';
+import '../domain/board_geometry.dart';
+import '../domain/puzzle_piece.dart';
+import '../domain/solved_layout_piece_builder.dart';
+import 'widgets/puzzle_chunks_layer.dart';
 
 /// Returns the next layout index when cycling through [layoutCount] layouts.
 int nextLayoutIndex(int currentIndex, int layoutCount) {
@@ -37,6 +39,9 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   int _currentLayoutIndex = 0;
   String? _errorMessage;
   bool _isLoading = true;
+  int _playCanvasRows = 0;
+  int _playCanvasCols = 0;
+  List<PuzzlePiece> _solvedPieces = const [];
 
   PuzzleLayout? get _currentLayout =>
       _layouts.isEmpty ? null : _layouts[_currentLayoutIndex];
@@ -55,6 +60,57 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     }
   }
 
+  void _schedulePlayCanvasUpdate(int canvasRows, int canvasCols) {
+    if (_playCanvasRows == canvasRows && _playCanvasCols == canvasCols) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _playCanvasRows = canvasRows;
+        _playCanvasCols = canvasCols;
+        final layout = _currentLayout;
+        if (layout != null) {
+          _rebuildSolvedPieces(
+            layout,
+            canvasRows: canvasRows,
+            canvasCols: canvasCols,
+          );
+        }
+      });
+    });
+  }
+
+  void _rebuildSolvedPieces(
+    PuzzleLayout layout, {
+    required int canvasRows,
+    required int canvasCols,
+  }) {
+    final pieceState = buildSolvedPiece(layout);
+    var piece = PuzzlePiece.fromPieceState(pieceState);
+    final anchor = centeredPieceAnchor(
+      canvasRows: canvasRows,
+      canvasCols: canvasCols,
+      piece: piece,
+    );
+
+    piece = PuzzlePiece(
+      id: piece.id,
+      chunkId: piece.chunkId,
+      anchorRow: anchor.row,
+      anchorCol: anchor.col,
+      spawnAnchorRow: anchor.row,
+      spawnAnchorCol: anchor.col,
+      cells: piece.cells,
+    );
+
+    _solvedPieces = [piece];
+  }
+
   Future<void> _loadAndGenerate() async {
     debugPrint('[PuzzleScreen] Rendering puzzleId: ${widget.puzzleId}');
 
@@ -64,6 +120,9 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       _puzzle = null;
       _layouts = const [];
       _currentLayoutIndex = 0;
+      _solvedPieces = const [];
+      _playCanvasRows = 0;
+      _playCanvasCols = 0;
     });
 
     try {
@@ -141,11 +200,25 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
         _currentLayoutIndex,
         _layouts.length,
       );
+      final layout = _currentLayout;
+      if (layout != null && _playCanvasRows > 0 && _playCanvasCols > 0) {
+        _rebuildSolvedPieces(
+          layout,
+          canvasRows: _playCanvasRows,
+          canvasCols: _playCanvasCols,
+        );
+      }
     });
 
     debugPrint(
       '[PuzzleScreen] Shuffled to layout ${_currentLayoutIndex + 1} / ${_layouts.length}',
     );
+  }
+
+  void _onPiecesChanged(List<PuzzlePiece> pieces) {
+    setState(() {
+      _solvedPieces = pieces;
+    });
   }
 
   String _userFacingError(Object error) {
@@ -167,27 +240,18 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: Text(_puzzle?.category ?? 'Puzzle ${widget.puzzleId}'),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          const GridBackground(),
-          SafeArea(
-            child: _buildBody(context),
-          ),
-        ],
+      body: SafeArea(
+        child: _buildBody(context),
       ),
     );
   }
 
   Widget _buildBody(BuildContext context) {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (_errorMessage != null) {
@@ -209,86 +273,80 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       return const SizedBox.shrink();
     }
 
-    final displayLayout = GeneratedPuzzleLayout.fromPuzzleContent(
-      puzzle,
-      currentLayout,
-    );
-
-    final rowCount = displayLayout.maxRow - displayLayout.minRow + 1;
-    final colCount = displayLayout.maxCol - displayLayout.minCol + 1;
-    final boardWidth = colCount * BoardConstants.kBoardTileSize;
-    final boardHeight = rowCount * BoardConstants.kBoardTileSize;
+    final puzzleRowCount = currentLayout.maxRow - currentLayout.minRow + 1;
+    final puzzleColCount = currentLayout.maxCol - currentLayout.minCol + 1;
+    final boardCellSize = BoardConstants.kBoardTileSize;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            BoardConstants.kBoardOuterPadding,
-            8,
-            BoardConstants.kBoardOuterPadding,
-            8,
-          ),
-          child: Column(
-            children: [
-              Text(
-                puzzle.category,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontWeight: FontWeight.bold,
-                    ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    onPressed: _layouts.length > 1 ? _shuffleLayout : null,
-                    icon: const Icon(Icons.shuffle),
-                    tooltip: 'Shuffle layout',
-                  ),
-                  Text(
-                    'Layout ${_currentLayoutIndex + 1} / ${_layouts.length}',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
+        _buildHeader(context, puzzle),
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final left = BoardConstants.snapToGrid(
-                (constraints.maxWidth - boardWidth) / 2,
+              final canvasCols = max(
+                1,
+                (constraints.maxWidth / boardCellSize).floor(),
               );
-              final top = BoardConstants.snapToGrid(
-                (constraints.maxHeight - boardHeight) / 2,
+              final canvasRows = max(
+                1,
+                (constraints.maxHeight / boardCellSize).floor(),
               );
 
-              return SingleChildScrollView(
-                child: SizedBox(
-                  width: constraints.maxWidth,
-                  height: max(constraints.maxHeight, boardHeight + top),
-                  child: Stack(
-                    children: [
-                      Positioned(
-                        left: left,
-                        top: top,
-                        child: SolvedGridBoard(
-                          key: ValueKey(_currentLayoutIndex),
-                          layout: displayLayout,
-                        ),
+              _schedulePlayCanvasUpdate(canvasRows, canvasCols);
+
+              return ClipRect(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    const GridBackground(),
+                    if (_solvedPieces.isNotEmpty)
+                      PuzzleChunksLayer(
+                        key: ValueKey(_currentLayoutIndex),
+                        boardRows: puzzleRowCount,
+                        boardCols: puzzleColCount,
+                        canvasRows: canvasRows,
+                        canvasCols: canvasCols,
+                        pieces: _solvedPieces,
+                        tileSize: boardCellSize,
+                        onPiecesChanged: _onPiecesChanged,
                       ),
-                    ],
-                  ),
+                  ],
                 ),
               );
             },
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, PuzzleContent puzzle) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        BoardConstants.kBoardOuterPadding,
+        4,
+        BoardConstants.kBoardOuterPadding,
+        4,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              puzzle.category,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          IconButton(
+            onPressed: _layouts.length > 1 ? _shuffleLayout : null,
+            icon: const Icon(Icons.shuffle),
+            tooltip: 'Shuffle layout',
+          ),
+        ],
+      ),
     );
   }
 }

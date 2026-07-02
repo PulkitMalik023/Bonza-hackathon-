@@ -64,8 +64,11 @@ class _GridNodesLayerState extends State<GridNodesLayer> {
     return [
       PuzzlePiece(
         id: 'piece1',
+        chunkId: 'piece1',
         anchorRow: 10,
         anchorCol: 2,
+        spawnAnchorRow: 10,
+        spawnAnchorCol: 2,
         cells: const [
           PieceCell(letter: 'R', rowOffset: 0, colOffset: 0),
           PieceCell(letter: 'K', rowOffset: 0, colOffset: 1),
@@ -73,8 +76,11 @@ class _GridNodesLayerState extends State<GridNodesLayer> {
       ),
       PuzzlePiece(
         id: 'piece2',
+        chunkId: 'piece2',
         anchorRow: 6,
         anchorCol: 0,
+        spawnAnchorRow: 6,
+        spawnAnchorCol: 0,
         cells: const [
           PieceCell(letter: 'B', rowOffset: 0, colOffset: 0),
           PieceCell(letter: 'F', rowOffset: 1, colOffset: 0),
@@ -82,8 +88,11 @@ class _GridNodesLayerState extends State<GridNodesLayer> {
       ),
       PuzzlePiece(
         id: 'piece3',
+        chunkId: 'piece3',
         anchorRow: 1,
         anchorCol: 2,
+        spawnAnchorRow: 1,
+        spawnAnchorCol: 2,
         cells: const [
           PieceCell(letter: 'I', rowOffset: 0, colOffset: 0),
           PieceCell(letter: 'N', rowOffset: 0, colOffset: 1),
@@ -91,8 +100,11 @@ class _GridNodesLayerState extends State<GridNodesLayer> {
       ),
       PuzzlePiece(
         id: 'piece4',
+        chunkId: 'piece4',
         anchorRow: 13,
         anchorCol: 4,
+        spawnAnchorRow: 13,
+        spawnAnchorCol: 4,
         cells: const [
           PieceCell(letter: 'V', rowOffset: 0, colOffset: 0),
           PieceCell(letter: 'C', rowOffset: 1, colOffset: 0),
@@ -100,8 +112,11 @@ class _GridNodesLayerState extends State<GridNodesLayer> {
       ),
       PuzzlePiece(
         id: 'piece5',
+        chunkId: 'piece5',
         anchorRow: 8,
         anchorCol: 7,
+        spawnAnchorRow: 8,
+        spawnAnchorCol: 7,
         cells: const [
           PieceCell(letter: 'L', rowOffset: 0, colOffset: 0),
           PieceCell(letter: 'M', rowOffset: 0, colOffset: 1),

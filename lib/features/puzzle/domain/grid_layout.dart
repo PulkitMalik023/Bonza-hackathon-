@@ -71,4 +71,28 @@ class GridLayout {
     final row = (topLeft.dy / tileSize).round().clamp(0, rows - 1);
     return (row: row, col: col);
   }
+
+  ({int row, int col}) nearestBoardCellFromCenter(
+    Offset center, {
+    required int boardRows,
+    required int boardCols,
+  }) {
+    var bestRow = 0;
+    var bestCol = 0;
+    var bestDistance = double.infinity;
+
+    for (var row = 0; row < boardRows; row++) {
+      for (var col = 0; col < boardCols; col++) {
+        final cellCenter = cells[row][col].center;
+        final distance = (cellCenter - center).distanceSquared;
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestRow = row;
+          bestCol = col;
+        }
+      }
+    }
+
+    return (row: bestRow, col: bestCol);
+  }
 }
