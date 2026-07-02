@@ -8,9 +8,8 @@ import '../data/generators/puzzle_layout_generator.dart';
 import '../data/models/puzzle_content.dart';
 import '../data/models/puzzle_layout.dart';
 import '../data/repositories/puzzle_repository.dart';
-import '../domain/board_geometry.dart';
 import '../domain/puzzle_piece.dart';
-import '../domain/solved_layout_piece_builder.dart';
+import '../domain/word_pieces_builder.dart';
 import 'widgets/puzzle_chunks_layer.dart';
 
 /// Returns the next layout index when cycling through [layoutCount] layouts.
@@ -41,7 +40,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   bool _isLoading = true;
   int _playCanvasRows = 0;
   int _playCanvasCols = 0;
-  List<PuzzlePiece> _solvedPieces = const [];
+  List<PuzzlePiece> _playPieces = const [];
 
   PuzzleLayout? get _currentLayout =>
       _layouts.isEmpty ? null : _layouts[_currentLayoutIndex];
@@ -75,7 +74,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
         _playCanvasCols = canvasCols;
         final layout = _currentLayout;
         if (layout != null) {
-          _rebuildSolvedPieces(
+          _rebuildWordPieces(
             layout,
             canvasRows: canvasRows,
             canvasCols: canvasCols,
@@ -85,30 +84,16 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     });
   }
 
-  void _rebuildSolvedPieces(
+  void _rebuildWordPieces(
     PuzzleLayout layout, {
     required int canvasRows,
     required int canvasCols,
   }) {
-    final pieceState = buildSolvedPiece(layout);
-    var piece = PuzzlePiece.fromPieceState(pieceState);
-    final anchor = centeredPieceAnchor(
+    _playPieces = buildWordPieces(
+      layout: layout,
       canvasRows: canvasRows,
       canvasCols: canvasCols,
-      piece: piece,
     );
-
-    piece = PuzzlePiece(
-      id: piece.id,
-      chunkId: piece.chunkId,
-      anchorRow: anchor.row,
-      anchorCol: anchor.col,
-      spawnAnchorRow: anchor.row,
-      spawnAnchorCol: anchor.col,
-      cells: piece.cells,
-    );
-
-    _solvedPieces = [piece];
   }
 
   Future<void> _loadAndGenerate() async {
@@ -120,7 +105,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       _puzzle = null;
       _layouts = const [];
       _currentLayoutIndex = 0;
-      _solvedPieces = const [];
+      _playPieces = const [];
       _playCanvasRows = 0;
       _playCanvasCols = 0;
     });
@@ -202,7 +187,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       );
       final layout = _currentLayout;
       if (layout != null && _playCanvasRows > 0 && _playCanvasCols > 0) {
-        _rebuildSolvedPieces(
+        _rebuildWordPieces(
           layout,
           canvasRows: _playCanvasRows,
           canvasCols: _playCanvasCols,
@@ -217,7 +202,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
   void _onPiecesChanged(List<PuzzlePiece> pieces) {
     setState(() {
-      _solvedPieces = pieces;
+      _playPieces = pieces;
     });
   }
 
@@ -273,8 +258,6 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       return const SizedBox.shrink();
     }
 
-    final puzzleRowCount = currentLayout.maxRow - currentLayout.minRow + 1;
-    final puzzleColCount = currentLayout.maxCol - currentLayout.minCol + 1;
     final boardCellSize = BoardConstants.kBoardTileSize;
 
     return Column(
@@ -300,14 +283,14 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                   fit: StackFit.expand,
                   children: [
                     const GridBackground(),
-                    if (_solvedPieces.isNotEmpty)
+                    if (_playPieces.isNotEmpty)
                       PuzzleChunksLayer(
                         key: ValueKey(_currentLayoutIndex),
-                        boardRows: puzzleRowCount,
-                        boardCols: puzzleColCount,
+                        boardRows: canvasRows,
+                        boardCols: canvasCols,
                         canvasRows: canvasRows,
                         canvasCols: canvasCols,
-                        pieces: _solvedPieces,
+                        pieces: _playPieces,
                         tileSize: boardCellSize,
                         onPiecesChanged: _onPiecesChanged,
                       ),
