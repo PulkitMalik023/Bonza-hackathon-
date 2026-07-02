@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../constants/board_constants.dart';
+
 abstract final class AppTheme {
-  static const double gridTileSize = 48;
-  static const double gridBackgroundSpacing = 64;
+  static const double gridTileSize = BoardConstants.kBoardTileSize;
 
   static const Color gridBackgroundColor = Color(0xFFFAFAFA);
   static const Color gridBackgroundLineColor = Color(0xFFE0E0E0);

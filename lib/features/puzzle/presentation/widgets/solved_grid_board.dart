@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/constants/board_constants.dart';
 import '../../data/models/generated_puzzle_layout.dart';
 import 'puzzle_node_tile.dart';
 
@@ -8,7 +8,7 @@ class SolvedGridBoard extends StatelessWidget {
   const SolvedGridBoard({
     super.key,
     required this.layout,
-    this.tileSize = AppTheme.gridTileSize,
+    this.tileSize = BoardConstants.kBoardTileSize,
   });
 
   final GeneratedPuzzleLayout layout;

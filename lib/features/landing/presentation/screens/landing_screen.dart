@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../puzzle/data/models/puzzle_definition.dart';
 import '../../../puzzle/data/sources/puzzle_content_loader.dart';
 import '../../../puzzle/presentation/puzzle_screen.dart';
-import '../../../../shared/widgets/grid_background.dart';
-import '../widgets/level_tile_card.dart';
+import '../../../../core/constants/board_constants.dart';
+import '../../../shared/widgets/grid_background.dart';
+import '../widgets/level_button.dart';
 
 class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});
@@ -70,18 +71,6 @@ class _LandingScreenState extends State<LandingScreen> {
     );
   }
 
-  Alignment _alignmentForIndex(int index) {
-    switch (index % 3) {
-      case 0:
-        return Alignment.centerLeft;
-      case 1:
-        return Alignment.center;
-      case 2:
-      default:
-        return Alignment.centerRight;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -108,7 +97,7 @@ class _LandingScreenState extends State<LandingScreen> {
     if (_errorMessage != null) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(BoardConstants.kBoardOuterPadding),
           child: Text(
             _errorMessage!,
             textAlign: TextAlign.center,
@@ -126,9 +115,9 @@ class _LandingScreenState extends State<LandingScreen> {
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
+      padding: const EdgeInsets.all(BoardConstants.kBoardOuterPadding),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
             'Jam Pro',
@@ -146,16 +135,14 @@ class _LandingScreenState extends State<LandingScreen> {
                 ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: BoardConstants.kBoardOuterPadding),
           for (var index = 0; index < puzzles.length; index++) ...[
-            Align(
-              alignment: _alignmentForIndex(index),
-              child: LevelTileCard(
-                label: 'LEVEL ${index + 1}',
-                onTap: () => _openPuzzle(index),
-              ),
+            LevelButton(
+              label: 'LEVEL ${index + 1}',
+              onTap: () => _openPuzzle(index),
             ),
-            if (index < puzzles.length - 1) const SizedBox(height: 28),
+            if (index < puzzles.length - 1)
+              const SizedBox(height: BoardConstants.kLevelButtonSpacing),
           ],
         ],
       ),

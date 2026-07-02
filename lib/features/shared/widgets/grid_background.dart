@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/app_theme.dart';
+import '../../../core/constants/board_constants.dart';
+import '../../../core/theme/app_theme.dart';
 
 class GridBackground extends StatelessWidget {
   const GridBackground({
     super.key,
-    this.spacing = AppTheme.gridBackgroundSpacing,
+    this.spacing = BoardConstants.kBoardTileSize,
     this.backgroundColor = AppTheme.gridBackgroundColor,
     this.lineColor = AppTheme.gridBackgroundLineColor,
+    this.lineWidth = BoardConstants.kBoardGridLineWidth,
     this.child,
   });
 
   final double spacing;
   final Color backgroundColor;
   final Color lineColor;
+  final double lineWidth;
   final Widget? child;
 
   @override
@@ -25,6 +28,7 @@ class GridBackground extends StatelessWidget {
             spacing: spacing,
             backgroundColor: backgroundColor,
             lineColor: lineColor,
+            lineWidth: lineWidth,
           ),
           size: Size(constraints.maxWidth, constraints.maxHeight),
           child: child,
@@ -39,11 +43,13 @@ class _GridBackgroundPainter extends CustomPainter {
     required this.spacing,
     required this.backgroundColor,
     required this.lineColor,
+    required this.lineWidth,
   });
 
   final double spacing;
   final Color backgroundColor;
   final Color lineColor;
+  final double lineWidth;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -52,7 +58,7 @@ class _GridBackgroundPainter extends CustomPainter {
 
     final linePaint = Paint()
       ..color = lineColor
-      ..strokeWidth = 1;
+      ..strokeWidth = lineWidth;
 
     for (var x = 0.0; x <= size.width; x += spacing) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), linePaint);
@@ -67,6 +73,7 @@ class _GridBackgroundPainter extends CustomPainter {
   bool shouldRepaint(covariant _GridBackgroundPainter oldDelegate) {
     return oldDelegate.spacing != spacing ||
         oldDelegate.backgroundColor != backgroundColor ||
-        oldDelegate.lineColor != lineColor;
+        oldDelegate.lineColor != lineColor ||
+        oldDelegate.lineWidth != lineWidth;
   }
 }

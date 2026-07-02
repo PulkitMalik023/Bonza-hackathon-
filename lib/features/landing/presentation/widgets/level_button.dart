@@ -1,25 +1,22 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/constants/board_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 
-class LevelTileCard extends StatelessWidget {
-  const LevelTileCard({
+class LevelButton extends StatelessWidget {
+  const LevelButton({
     super.key,
     required this.label,
     required this.onTap,
-    this.width,
-    this.height = 56,
   });
 
   final String label;
   final VoidCallback onTap;
-  final double? width;
-  final double height;
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    final tileWidth = width ?? screenWidth * 0.75;
+    final tileWidth =
+        MediaQuery.sizeOf(context).width * BoardConstants.kLevelButtonWidthFactor;
 
     return Material(
       color: AppTheme.nodeBackgroundColor,
@@ -29,7 +26,7 @@ class LevelTileCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         child: Container(
           width: tileWidth,
-          height: height,
+          height: BoardConstants.kLevelButtonHeight,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),

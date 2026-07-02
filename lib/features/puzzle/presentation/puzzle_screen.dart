@@ -1,7 +1,9 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
-import '../../../shared/widgets/grid_background.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/constants/board_constants.dart';
+import '../../shared/widgets/grid_background.dart';
 import '../data/generators/puzzle_layout_generator.dart';
 import '../data/models/generated_puzzle_layout.dart';
 import '../data/sources/puzzle_content_loader.dart';
@@ -119,7 +121,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     if (_errorMessage != null) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(BoardConstants.kBoardOuterPadding),
           child: Text(
             _errorMessage!,
             textAlign: TextAlign.center,
@@ -134,11 +136,21 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       return const SizedBox.shrink();
     }
 
+    final rowCount = layout.maxRow - layout.minRow + 1;
+    final colCount = layout.maxCol - layout.minCol + 1;
+    final boardWidth = colCount * BoardConstants.kBoardTileSize;
+    final boardHeight = rowCount * BoardConstants.kBoardTileSize;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
+          padding: const EdgeInsets.fromLTRB(
+            BoardConstants.kBoardOuterPadding,
+            8,
+            BoardConstants.kBoardOuterPadding,
+            8,
+          ),
           child: Text(
             layout.category,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -149,14 +161,31 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
           ),
         ),
         Expanded(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: SolvedGridBoard(
-                layout: layout,
-                tileSize: AppTheme.gridTileSize,
-              ),
-            ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final left = BoardConstants.snapToGrid(
+                (constraints.maxWidth - boardWidth) / 2,
+              );
+              final top = BoardConstants.snapToGrid(
+                (constraints.maxHeight - boardHeight) / 2,
+              );
+
+              return SingleChildScrollView(
+                child: SizedBox(
+                  width: constraints.maxWidth,
+                  height: max(constraints.maxHeight, boardHeight + top),
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        left: left,
+                        top: top,
+                        child: SolvedGridBoard(layout: layout),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ],
