@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/economy/coin_service.dart';
 import '../../../puzzle/data/models/puzzle_content.dart';
 import '../../../puzzle/data/repositories/puzzle_repository.dart';
 import '../../../puzzle/presentation/puzzle_screen.dart';
-import '../../../../core/constants/board_constants.dart';
-import '../../../shared/widgets/grid_background.dart';
-import '../widgets/level_button.dart';
+import '../../../puzzle/presentation/widgets/puzzle_nature_background.dart';
+import '../widgets/home_bottom_nav_bar.dart';
+import '../widgets/home_header.dart';
+import '../widgets/home_level_card.dart';
+import '../widgets/home_section_title.dart';
 
 class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});
@@ -22,6 +25,7 @@ class _LandingScreenState extends State<LandingScreen> {
   @override
   void initState() {
     super.initState();
+    CoinService.instance.load();
     _loadPuzzles();
   }
 
@@ -71,6 +75,25 @@ class _LandingScreenState extends State<LandingScreen> {
     );
   }
 
+  void _showPlaceholder(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  void _onNavTabSelected(HomeNavTab tab) {
+    switch (tab) {
+      case HomeNavTab.home:
+        break;
+      case HomeNavTab.daily:
+        _showPlaceholder('Daily challenges coming soon');
+      case HomeNavTab.rewards:
+        _showPlaceholder('Rewards coming soon');
+      case HomeNavTab.shop:
+        _showPlaceholder('Shop coming soon');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -78,9 +101,30 @@ class _LandingScreenState extends State<LandingScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          const GridBackground(),
+          const PuzzleNatureBackground(),
           SafeArea(
-            child: _buildBody(context),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ListenableBuilder(
+                  listenable: CoinService.instance,
+                  builder: (context, _) {
+                    return HomeHeader(
+                      coinBalance: CoinService.instance.coinBalance,
+                      onSettingsPressed: () {
+                        _showPlaceholder('Settings coming soon');
+                      },
+                      onAddCoins: () {
+                        _showPlaceholder('Coin shop coming soon');
+                      },
+                    );
+                  },
+                ),
+                const HomeSectionTitle(),
+                Expanded(child: _buildBody(context)),
+                HomeBottomNavBar(onTabSelected: _onNavTabSelected),
+              ],
+            ),
           ),
         ],
       ),
@@ -90,18 +134,23 @@ class _LandingScreenState extends State<LandingScreen> {
   Widget _buildBody(BuildContext context) {
     if (_isLoading) {
       return const Center(
-        child: CircularProgressIndicator(),
+        child: CircularProgressIndicator(
+          color: Color(0xFF2E7D50),
+        ),
       );
     }
 
     if (_errorMessage != null) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(BoardConstants.kBoardOuterPadding),
+          padding: const EdgeInsets.all(24),
           child: Text(
             _errorMessage!,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyLarge,
+            style: const TextStyle(
+              color: Color(0xFF1F4D38),
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       );
@@ -110,69 +159,31 @@ class _LandingScreenState extends State<LandingScreen> {
     final puzzles = _puzzles;
     if (puzzles == null || puzzles.isEmpty) {
       return const Center(
-        child: Text('No puzzles available'),
+        child: Text(
+          'No puzzles available',
+          style: TextStyle(
+            color: Color(0xFF1F4D38),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            BoardConstants.kBoardOuterPadding,
-            16,
-            BoardConstants.kBoardOuterPadding,
-            8,
-          ),
-          child: Column(
-            children: [
-              Text(
-                'Jam Pro',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Choose a Level',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.fromLTRB(
-              BoardConstants.kBoardOuterPadding,
-              8,
-              BoardConstants.kBoardOuterPadding,
-              BoardConstants.kBoardOuterPadding,
-            ),
-            itemCount: puzzles.length,
-            itemBuilder: (context, index) {
-              final puzzle = puzzles[index];
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      itemCount: puzzles.length,
+      itemBuilder: (context, index) {
+        final puzzle = puzzles[index];
 
-              return Padding(
-                padding: const EdgeInsets.only(
-                  bottom: BoardConstants.kLevelButtonSpacing,
-                ),
-                child: Center(
-                  child: LevelButton(
-                    label: 'LEVEL ${puzzle.id}',
-                    subtitle: puzzle.category,
-                    onTap: () => _openPuzzle(puzzle.id),
-                  ),
-                ),
-              );
-            },
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: HomeLevelCard(
+            levelNumber: puzzle.id,
+            category: puzzle.category,
+            onTap: () => _openPuzzle(puzzle.id),
           ),
-        ),
-      ],
+        );
+      },
     );
   }
 }

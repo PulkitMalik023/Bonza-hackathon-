@@ -76,6 +76,14 @@ class PuzzleDeconstructor {
     );
   }
 
+  DeconstructedPuzzle? tryBuild(PuzzleLayout layout) {
+    try {
+      return build(layout);
+    } on StateError {
+      return null;
+    }
+  }
+
   Map<BoardCellPosition, String> _buildLetterMap(PuzzleLayout layout) {
     final letterMap = <BoardCellPosition, String>{};
     for (final cell in layout.occupiedCells) {

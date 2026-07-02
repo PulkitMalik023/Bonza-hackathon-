@@ -29,6 +29,8 @@ class PuzzleChunksLayer extends StatefulWidget {
     required this.onPiecesChanged,
     required this.tileSize,
     this.interactionEnabled = true,
+    this.onDragStart,
+    this.onDragEnd,
   });
 
   final int boardRows;
@@ -39,6 +41,8 @@ class PuzzleChunksLayer extends StatefulWidget {
   final ValueChanged<PiecesChangeEvent> onPiecesChanged;
   final double tileSize;
   final bool interactionEnabled;
+  final VoidCallback? onDragStart;
+  final VoidCallback? onDragEnd;
 
   @override
   State<PuzzleChunksLayer> createState() => _PuzzleChunksLayerState();
@@ -202,6 +206,7 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer> {
         _occupancy.clearPiece(piece.id);
       }
     });
+    widget.onDragStart?.call();
   }
 
   void _onPanUpdate(PuzzlePiece piece, DragUpdateDetails details) {
@@ -230,6 +235,8 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer> {
         _liveDragTopLeft == null) {
       return;
     }
+
+    widget.onDragEnd?.call();
 
     final droppedTopLeft = _liveDragTopLeft!;
     final result = evaluateChunkDrop(
@@ -303,6 +310,7 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer> {
                 tileSize: tileSize,
                 isDragging: isActive,
                 showBorder: isActive || !piece.isCompletedWordGroup,
+                isCompleted: piece.isCompletedWordGroup,
               ),
             ),
         ],

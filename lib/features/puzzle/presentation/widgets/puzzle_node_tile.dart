@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/puzzle_theme.dart';
+
+enum PuzzleTileVisualState {
+  normal,
+  dragging,
+  completed,
+}
 
 class PuzzleNodeTile extends StatelessWidget {
   const PuzzleNodeTile({
@@ -9,57 +15,94 @@ class PuzzleNodeTile extends StatelessWidget {
     required this.tileSize,
     this.isDragging = false,
     this.showBorder = true,
+    this.isCompleted = false,
   });
 
   final String character;
   final double tileSize;
   final bool isDragging;
   final bool showBorder;
+  final bool isCompleted;
+
+  PuzzleTileVisualState get visualState {
+    if (isDragging) {
+      return PuzzleTileVisualState.dragging;
+    }
+    if (isCompleted) {
+      return PuzzleTileVisualState.completed;
+    }
+    return PuzzleTileVisualState.normal;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final state = visualState;
     final tile = SizedBox(
       width: tileSize,
       height: tileSize,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: AppTheme.nodeBackgroundColor,
+          color: _backgroundForState(state),
+          borderRadius: BorderRadius.circular(PuzzleTheme.tileRadius),
           border: showBorder
               ? Border.all(
-                  color: AppTheme.nodeBorderColor,
+                  color: _borderForState(state),
                   width: 1,
                 )
               : null,
-          boxShadow: isDragging
-              ? const [
-                  BoxShadow(
-                    color: AppTheme.nodeDragShadowColor,
-                    blurRadius: AppTheme.nodeDragShadowBlurRadius,
-                    offset: AppTheme.nodeDragShadowOffset,
-                  ),
-                ]
-              : null,
+          boxShadow: _shadowForState(state),
         ),
         child: Center(
           child: Text(
             character,
             style: TextStyle(
-              color: AppTheme.nodeTextColor,
-              fontSize: tileSize * 0.5,
-              fontWeight: FontWeight.bold,
+              color: PuzzleTheme.tileText,
+              fontSize: tileSize * 0.48,
+              fontWeight: FontWeight.w800,
             ),
           ),
         ),
       ),
     );
 
-    if (!isDragging) {
+    if (state != PuzzleTileVisualState.dragging) {
       return tile;
     }
 
     return Transform.scale(
-      scale: AppTheme.nodeDragScale,
+      scale: 1.04,
       child: tile,
     );
+  }
+
+  Color _backgroundForState(PuzzleTileVisualState state) {
+    switch (state) {
+      case PuzzleTileVisualState.normal:
+      case PuzzleTileVisualState.dragging:
+        return PuzzleTheme.tileBg;
+      case PuzzleTileVisualState.completed:
+        return PuzzleTheme.tileBg.withValues(alpha: 0.92);
+    }
+  }
+
+  Color _borderForState(PuzzleTileVisualState state) {
+    switch (state) {
+      case PuzzleTileVisualState.normal:
+        return const Color(0x33FFFFFF);
+      case PuzzleTileVisualState.dragging:
+        return const Color(0x66FFFFFF);
+      case PuzzleTileVisualState.completed:
+        return PuzzleTheme.lightGreen.withValues(alpha: 0.6);
+    }
+  }
+
+  List<BoxShadow> _shadowForState(PuzzleTileVisualState state) {
+    switch (state) {
+      case PuzzleTileVisualState.normal:
+      case PuzzleTileVisualState.completed:
+        return PuzzleTheme.tileRestShadow;
+      case PuzzleTileVisualState.dragging:
+        return PuzzleTheme.tileDragShadow;
+    }
   }
 }
