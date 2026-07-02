@@ -5,9 +5,10 @@ import '../models/deconstructed_puzzle.dart';
 import '../models/puzzle_chunk.dart';
 import '../models/puzzle_layout.dart';
 
+/// Deconstructs a solved [PuzzleLayout] into connected draggable chunks.
 class PuzzleDeconstructor {
   static const _minChunkSize = 2;
-  static const _maxChunkSize = 5;
+  static const _maxChunkSize = 3;
 
   DeconstructedPuzzle build(PuzzleLayout layout) {
     final letterMap = _buildLetterMap(layout);
@@ -99,11 +100,10 @@ class PuzzleDeconstructor {
     if (remainingCount <= 1) {
       return 1;
     }
-    if (remainingCount <= _minChunkSize) {
-      return remainingCount;
+    if (remainingCount == 2) {
+      return 2;
     }
-    final maxSize = min(_maxChunkSize, remainingCount);
-    return _minChunkSize + random.nextInt(maxSize - _minChunkSize + 1);
+    return 2 + random.nextInt(2);
   }
 
   Set<BoardCellPosition>? _growChunkCandidate({

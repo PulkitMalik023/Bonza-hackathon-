@@ -72,6 +72,20 @@ void main() {
     expect(chunkLetters, layoutLetters);
   });
 
+  test('chunk sizes are limited to 1, 2, or 3 cells', () {
+    final layout = layoutForWords(['RED', 'BLUE', 'GREEN', 'PINK']);
+    final result = deconstructor.build(layout);
+
+    for (final chunk in result.chunks) {
+      final size = chunk.solvedCells.length;
+      expect(size, inInclusiveRange(1, 3));
+    }
+
+    final multiCellChunks =
+        result.chunks.where((chunk) => chunk.solvedCells.length > 1).length;
+    expect(multiCellChunks, greaterThan(0));
+  });
+
   test('isPuzzleSolved returns true when pieces match solved layout', () {
     final layout = layoutForWords(['SPOON', 'FORK', 'KNIFE']);
     final deconstructed = deconstructor.build(layout);

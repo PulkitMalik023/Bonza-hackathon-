@@ -3,12 +3,16 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/board_constants.dart';
+import '../../../core/constants/debug_flags.dart';
 import '../../shared/widgets/grid_background.dart';
 import '../data/generators/puzzle_layout_generator.dart';
 import '../data/models/puzzle_content.dart';
 import '../data/models/puzzle_layout.dart';
 import '../data/repositories/puzzle_repository.dart';
+import '../domain/board_geometry.dart';
+import '../domain/deconstructed_pieces_builder.dart';
 import '../domain/puzzle_piece.dart';
+import '../domain/solved_layout_piece_builder.dart';
 import '../domain/word_pieces_builder.dart';
 import 'widgets/puzzle_chunks_layer.dart';
 
@@ -74,7 +78,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
         _playCanvasCols = canvasCols;
         final layout = _currentLayout;
         if (layout != null) {
-          _rebuildWordPieces(
+          _rebuildPlayPieces(
             layout,
             canvasRows: canvasRows,
             canvasCols: canvasCols,
@@ -84,16 +88,44 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     });
   }
 
-  void _rebuildWordPieces(
+  void _rebuildPlayPieces(
     PuzzleLayout layout, {
     required int canvasRows,
     required int canvasCols,
   }) {
-    _playPieces = buildWordPieces(
-      layout: layout,
-      canvasRows: canvasRows,
-      canvasCols: canvasCols,
-    );
+    switch (kPuzzlePieceSource) {
+      case PuzzlePieceSource.deconstructed:
+        _playPieces = buildDeconstructedPlayPieces(
+          layout: layout,
+          canvasRows: canvasRows,
+          canvasCols: canvasCols,
+        );
+      case PuzzlePieceSource.solved:
+        final pieceState = buildSolvedPiece(layout);
+        var piece = PuzzlePiece.fromPieceState(pieceState);
+        final anchor = centeredPieceAnchor(
+          canvasRows: canvasRows,
+          canvasCols: canvasCols,
+          piece: piece,
+        );
+        _playPieces = [
+          PuzzlePiece(
+            id: piece.id,
+            chunkId: piece.chunkId,
+            anchorRow: anchor.row,
+            anchorCol: anchor.col,
+            spawnAnchorRow: anchor.row,
+            spawnAnchorCol: anchor.col,
+            cells: piece.cells,
+          ),
+        ];
+      case PuzzlePieceSource.words:
+        _playPieces = buildWordPieces(
+          layout: layout,
+          canvasRows: canvasRows,
+          canvasCols: canvasCols,
+        );
+    }
   }
 
   Future<void> _loadAndGenerate() async {
@@ -187,7 +219,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       );
       final layout = _currentLayout;
       if (layout != null && _playCanvasRows > 0 && _playCanvasCols > 0) {
-        _rebuildWordPieces(
+        _rebuildPlayPieces(
           layout,
           canvasRows: _playCanvasRows,
           canvasCols: _playCanvasCols,
