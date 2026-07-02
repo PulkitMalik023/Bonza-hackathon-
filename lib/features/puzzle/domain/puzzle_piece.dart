@@ -12,6 +12,9 @@ class PuzzlePiece {
     required this.spawnAnchorRow,
     required this.spawnAnchorCol,
     required this.cells,
+    this.isCompletedWordGroup = false,
+    this.completedWordKey,
+    this.completedAnswers = const {},
   });
 
   final String id;
@@ -21,6 +24,9 @@ class PuzzlePiece {
   final int spawnAnchorRow;
   final int spawnAnchorCol;
   final List<PieceCell> cells;
+  final bool isCompletedWordGroup;
+  final String? completedWordKey;
+  final Set<String> completedAnswers;
 
   List<BoardCellPosition> getOccupiedCells() =>
       getOccupiedCellsAt(anchorRow, anchorCol);
@@ -70,6 +76,42 @@ class PuzzlePiece {
       spawnAnchorRow: state.spawnAnchorRow,
       spawnAnchorCol: state.spawnAnchorCol,
       cells: state.localCells,
+    );
+  }
+
+  factory PuzzlePiece.completedWordGroup({
+    required String wordKey,
+    required int anchorRow,
+    required int anchorCol,
+    required List<PieceCell> cells,
+  }) {
+    return PuzzlePiece.completedClusterGroup(
+      clusterKey: wordKey,
+      anchorRow: anchorRow,
+      anchorCol: anchorCol,
+      cells: cells,
+      completedAnswers: {wordKey},
+    );
+  }
+
+  factory PuzzlePiece.completedClusterGroup({
+    required String clusterKey,
+    required int anchorRow,
+    required int anchorCol,
+    required List<PieceCell> cells,
+    required Set<String> completedAnswers,
+  }) {
+    return PuzzlePiece(
+      id: 'completed_$clusterKey',
+      chunkId: 'completed_$clusterKey',
+      anchorRow: anchorRow,
+      anchorCol: anchorCol,
+      spawnAnchorRow: anchorRow,
+      spawnAnchorCol: anchorCol,
+      cells: cells,
+      isCompletedWordGroup: true,
+      completedWordKey: clusterKey,
+      completedAnswers: completedAnswers,
     );
   }
 }

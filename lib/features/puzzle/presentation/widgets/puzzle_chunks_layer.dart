@@ -8,8 +8,10 @@ import '../../domain/board_cell_position.dart';
 import '../../domain/board_geometry.dart';
 import '../../domain/board_occupancy.dart';
 import '../../domain/chunk_drop_evaluator.dart';
+import '../../domain/puzzle_board_state.dart';
 import '../../domain/puzzle_piece.dart';
 import '../../domain/puzzle_solved_checker.dart';
+import '../../domain/word_completion_debug.dart';
 import 'puzzle_node_tile.dart';
 
 export '../../domain/chunk_drop_evaluator.dart' show canPlaceOnBoard;
@@ -26,7 +28,7 @@ class PuzzleChunksLayer extends StatefulWidget {
     required this.pieces,
     required this.onPiecesChanged,
     required this.tileSize,
-    this.onPiecePlaced,
+    this.interactionEnabled = true,
   });
 
   final int boardRows;
@@ -34,9 +36,9 @@ class PuzzleChunksLayer extends StatefulWidget {
   final int canvasRows;
   final int canvasCols;
   final List<PuzzlePiece> pieces;
-  final ValueChanged<List<PuzzlePiece>> onPiecesChanged;
+  final ValueChanged<PiecesChangeEvent> onPiecesChanged;
   final double tileSize;
-  final VoidCallback? onPiecePlaced;
+  final bool interactionEnabled;
 
   @override
   State<PuzzleChunksLayer> createState() => _PuzzleChunksLayerState();
@@ -45,11 +47,14 @@ class PuzzleChunksLayer extends StatefulWidget {
 class _PuzzleChunksLayerState extends State<PuzzleChunksLayer> {
   final GlobalKey _stackKey = GlobalKey();
   final BoardOccupancy _occupancy = BoardOccupancy();
+  final Set<String> _animatedCompletedGroupIds = {};
 
   late List<PuzzlePiece> _pieces;
   String? _draggedPieceId;
   Offset? _liveDragTopLeft;
   Offset _grabOffset = Offset.zero;
+  int? _dragStartAnchorRow;
+  int? _dragStartAnchorCol;
 
   bool get _isDragLocked => _draggedPieceId != null;
 
@@ -65,6 +70,7 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer> {
     super.didUpdateWidget(oldWidget);
 
     if (oldWidget.pieces != widget.pieces) {
+      _trackNewCompletedGroups(oldWidget.pieces, widget.pieces);
       _pieces = _clonePieces(widget.pieces);
       _rebuildOccupancy();
       if (_draggedPieceId == null) {
@@ -89,9 +95,29 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer> {
             spawnAnchorRow: piece.spawnAnchorRow,
             spawnAnchorCol: piece.spawnAnchorCol,
             cells: piece.cells,
+            isCompletedWordGroup: piece.isCompletedWordGroup,
+            completedWordKey: piece.completedWordKey,
+            completedAnswers: piece.completedAnswers,
           ),
         )
         .toList();
+  }
+
+  void _trackNewCompletedGroups(
+    List<PuzzlePiece> previousPieces,
+    List<PuzzlePiece> nextPieces,
+  ) {
+    final previousGroupIds = previousPieces
+        .where((piece) => piece.isCompletedWordGroup)
+        .map((piece) => piece.id)
+        .toSet();
+
+    for (final piece in nextPieces) {
+      if (piece.isCompletedWordGroup &&
+          !previousGroupIds.contains(piece.id)) {
+        _animatedCompletedGroupIds.add(piece.id);
+      }
+    }
   }
 
   void _rebuildOccupancy() {
@@ -106,6 +132,8 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer> {
     _draggedPieceId = null;
     _liveDragTopLeft = null;
     _grabOffset = Offset.zero;
+    _dragStartAnchorRow = null;
+    _dragStartAnchorCol = null;
   }
 
   Offset _clampPieceAnchorTopLeft(PuzzlePiece piece, Offset topLeft) {
@@ -120,8 +148,13 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer> {
     );
   }
 
-  void _notifyPiecesChanged() {
-    widget.onPiecesChanged(_clonePieces(_pieces));
+  void _notifyPiecesChanged({required Set<BoardCellPosition> affectedCells}) {
+    widget.onPiecesChanged(
+      PiecesChangeEvent(
+        pieces: _clonePieces(_pieces),
+        affectedCells: affectedCells,
+      ),
+    );
   }
 
   void _returnPieceToOrigin(PuzzlePiece piece) {
@@ -157,6 +190,8 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer> {
 
     setState(() {
       _draggedPieceId = piece.id;
+      _dragStartAnchorRow = piece.anchorRow;
+      _dragStartAnchorCol = piece.anchorCol;
       _grabOffset = details.localPosition;
       _liveDragTopLeft = cellTopLeft(
         piece.anchorRow,
@@ -209,12 +244,14 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer> {
     );
 
     _logDropResult(piece, result);
+    logPiecePlacementResult(piece: piece, result: result);
 
-    var didPlace = false;
+    final startRow = _dragStartAnchorRow ?? piece.spawnAnchorRow;
+    final startCol = _dragStartAnchorCol ?? piece.spawnAnchorCol;
+
     setState(() {
       if (result.action == ChunkDropAction.snap && result.targetAnchor != null) {
         _snapPieceToAnchor(piece, result.targetAnchor!);
-        didPlace = true;
       } else {
         _returnPieceToOrigin(piece);
       }
@@ -222,10 +259,13 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer> {
       _rebuildOccupancy();
     });
 
-    _notifyPiecesChanged();
-    if (didPlace) {
-      widget.onPiecePlaced?.call();
-    }
+    final affectedCells = getAffectedCellsForPiece(
+      piece: piece,
+      previousAnchorRow: startRow,
+      previousAnchorCol: startCol,
+    );
+
+    _notifyPiecesChanged(affectedCells: affectedCells);
   }
 
   ({double width, double height}) _pieceSize(PuzzlePiece piece) {
@@ -244,6 +284,8 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer> {
         ? (_liveDragTopLeft?.dy ?? cellTopLeft(piece.anchorRow, piece.anchorCol, tileSize).dy)
         : cellTopLeft(piece.anchorRow, piece.anchorCol, tileSize).dy;
     final pieceSize = _pieceSize(piece);
+    final shouldPulseCompletedGroup =
+        piece.isCompletedWordGroup && _animatedCompletedGroupIds.contains(piece.id);
 
     final pieceContent = SizedBox(
       width: pieceSize.width,
@@ -259,26 +301,47 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer> {
                 character: cell.letter,
                 tileSize: tileSize,
                 isDragging: isActive,
-                showBorder: isActive,
+                showBorder: isActive || !piece.isCompletedWordGroup,
               ),
             ),
         ],
       ),
     );
 
+    final animatedContent = shouldPulseCompletedGroup
+        ? TweenAnimationBuilder<double>(
+            key: ValueKey('completed_pulse_${piece.id}'),
+            tween: Tween<double>(begin: 1, end: 1.05),
+            duration: const Duration(milliseconds: 125),
+            curve: Curves.easeOut,
+            builder: (context, scale, child) {
+              return Transform.scale(scale: scale, child: child);
+            },
+            onEnd: () {
+              if (!mounted) {
+                return;
+              }
+              setState(() {
+                _animatedCompletedGroupIds.remove(piece.id);
+              });
+            },
+            child: pieceContent,
+          )
+        : pieceContent;
+
     return Positioned(
       key: ValueKey(piece.id),
       left: left,
       top: top,
       child: IgnorePointer(
-        ignoring: _isDragLocked && !isActive,
+        ignoring: !widget.interactionEnabled || (_isDragLocked && !isActive),
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onPanStart: (details) => _onPanStart(piece, details),
           onPanUpdate: (details) => _onPanUpdate(piece, details),
           onPanEnd: (_) => _onPanEnd(piece),
           onPanCancel: () => _onPanEnd(piece),
-          child: pieceContent,
+          child: animatedContent,
         ),
       ),
     );
@@ -298,15 +361,18 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer> {
         return 0;
       });
 
-    return SizedBox(
-      width: widget.canvasCols * widget.tileSize,
-      height: widget.canvasRows * widget.tileSize,
-      child: Stack(
-        key: _stackKey,
-        clipBehavior: Clip.hardEdge,
-        children: [
-          for (final piece in pieces) _buildPiece(piece),
-        ],
+    return AbsorbPointer(
+      absorbing: !widget.interactionEnabled,
+      child: SizedBox(
+        width: widget.canvasCols * widget.tileSize,
+        height: widget.canvasRows * widget.tileSize,
+        child: Stack(
+          key: _stackKey,
+          clipBehavior: Clip.hardEdge,
+          children: [
+            for (final piece in pieces) _buildPiece(piece),
+          ],
+        ),
       ),
     );
   }

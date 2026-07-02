@@ -5,15 +5,23 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/board_constants.dart';
 import '../../../core/constants/debug_flags.dart';
 import '../../shared/widgets/grid_background.dart';
+import '../data/deconstructors/puzzle_deconstructor.dart';
 import '../data/generators/puzzle_layout_generator.dart';
+import '../data/models/deconstructed_puzzle.dart';
 import '../data/models/puzzle_content.dart';
 import '../data/models/puzzle_layout.dart';
 import '../data/repositories/puzzle_repository.dart';
 import '../domain/board_geometry.dart';
+import '../domain/board_line_word_detector.dart';
+import '../domain/completed_cluster_builder.dart';
+import '../domain/completed_word_grouper.dart';
 import '../domain/deconstructed_pieces_builder.dart';
+import '../domain/puzzle_board_state.dart';
 import '../domain/puzzle_piece.dart';
+import '../domain/puzzle_solved_checker.dart';
 import '../domain/solved_layout_piece_builder.dart';
 import '../domain/word_pieces_builder.dart';
+import '../domain/word_completion_debug.dart';
 import 'widgets/puzzle_chunks_layer.dart';
 
 /// Returns the next layout index when cycling through [layoutCount] layouts.
@@ -37,6 +45,8 @@ class PuzzleScreen extends StatefulWidget {
 }
 
 class _PuzzleScreenState extends State<PuzzleScreen> {
+  final PuzzleRepository _puzzleRepository = PuzzleRepository();
+
   PuzzleContent? _puzzle;
   List<PuzzleLayout> _layouts = const [];
   int _currentLayoutIndex = 0;
@@ -45,6 +55,11 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   int _playCanvasRows = 0;
   int _playCanvasCols = 0;
   List<PuzzlePiece> _playPieces = const [];
+  DeconstructedPuzzle? _deconstructedPuzzle;
+  Set<String> _completedAnswers = {};
+  bool _puzzleCompletionHandled = false;
+  bool _interactionEnabled = true;
+  String? _lastEvaluatedPiecesSnapshot;
 
   PuzzleLayout? get _currentLayout =>
       _layouts.isEmpty ? null : _layouts[_currentLayoutIndex];
@@ -93,6 +108,8 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     required int canvasRows,
     required int canvasCols,
   }) {
+    _deconstructedPuzzle = PuzzleDeconstructor().build(layout);
+
     switch (kPuzzlePieceSource) {
       case PuzzlePieceSource.deconstructed:
         _playPieces = buildDeconstructedPlayPieces(
@@ -140,6 +157,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       _playPieces = const [];
       _playCanvasRows = 0;
       _playCanvasCols = 0;
+      _resetCompletionState();
     });
 
     try {
@@ -217,6 +235,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
         _currentLayoutIndex,
         _layouts.length,
       );
+      _resetCompletionState();
       final layout = _currentLayout;
       if (layout != null && _playCanvasRows > 0 && _playCanvasCols > 0) {
         _rebuildPlayPieces(
@@ -232,10 +251,166 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     );
   }
 
-  void _onPiecesChanged(List<PuzzlePiece> pieces) {
+  void _resetCompletionState() {
+    _completedAnswers = {};
+    _puzzleCompletionHandled = false;
+    _interactionEnabled = true;
+    _deconstructedPuzzle = null;
+    _lastEvaluatedPiecesSnapshot = null;
+  }
+
+  String _piecesSnapshot(List<PuzzlePiece> pieces) {
+    return pieces
+        .map(
+          (piece) =>
+              '${piece.id}:${piece.anchorRow},${piece.anchorCol}:${piece.cells.length}:${piece.isCompletedWordGroup}',
+        )
+        .join('|');
+  }
+
+  void _onPiecesChanged(PiecesChangeEvent event) {
     setState(() {
-      _playPieces = pieces;
+      _playPieces = event.pieces;
     });
+    _evaluateCompletion(event);
+  }
+
+  void _evaluateCompletion(PiecesChangeEvent event) {
+    if (_puzzleCompletionHandled) {
+      logCompletionSkipped('puzzle already completed');
+      return;
+    }
+
+    final puzzle = _puzzle;
+    if (puzzle == null) {
+      logCompletionSkipped('puzzle is null');
+      return;
+    }
+
+    if (event.affectedCells.isEmpty) {
+      logCompletionSkipped('no affected cells');
+      return;
+    }
+
+    final snapshot = _piecesSnapshot(event.pieces);
+    if (snapshot == _lastEvaluatedPiecesSnapshot) {
+      logCompletionSkipped('pieces unchanged since last evaluation');
+      return;
+    }
+    _lastEvaluatedPiecesSnapshot = snapshot;
+
+    final targetAnswers = normalizeTargetAnswers(puzzle.words);
+    final playAreaBoard = buildPlayAreaLetterMap(event.pieces);
+
+    final playAreaAffected = event.affectedCells
+        .where((cell) => playAreaBoard.containsKey(cell))
+        .toSet();
+
+    if (playAreaAffected.isEmpty) {
+      logCompletionSkipped('affected cells are outside play area');
+      return;
+    }
+
+    final matchedLines = findNewlyCompletedLines(
+      board: playAreaBoard,
+      affectedCells: playAreaAffected,
+      targetAnswers: targetAnswers,
+      completedAnswers: _completedAnswers,
+    );
+
+    logMatrixCompletionScan(
+      targetAnswers: targetAnswers,
+      completedAnswers: _completedAnswers,
+      affectedCells: playAreaAffected,
+      playAreaBoard: playAreaBoard,
+      matchedLines: matchedLines,
+    );
+
+    if (matchedLines.isEmpty) {
+      return;
+    }
+
+    final clusters = buildCompletedClusters(matchedLines);
+    var updatedPieces = event.pieces;
+    var completedChanged = false;
+
+    for (final cluster in clusters) {
+      updatedPieces = applyCompletedClusterGrouping(
+        pieces: updatedPieces,
+        cluster: cluster,
+      );
+      _completedAnswers = {..._completedAnswers, ...cluster.answers};
+      completedChanged = true;
+      _lastEvaluatedPiecesSnapshot = null;
+    }
+
+    final allAnswersCompleted = areAllTargetAnswersCompleted(
+      puzzle.words,
+      _completedAnswers,
+    );
+
+    logPuzzleAnswersCompletion(
+      targetWords: puzzle.words,
+      completedAnswers: _completedAnswers,
+      isComplete: allAnswersCompleted,
+    );
+
+    if (completedChanged) {
+      setState(() {
+        _playPieces = updatedPieces;
+      });
+    }
+
+    if (allAnswersCompleted) {
+      _onPuzzleCompleted();
+    }
+  }
+
+  Future<void> _onPuzzleCompleted() async {
+    if (_puzzleCompletionHandled) {
+      return;
+    }
+
+    setState(() {
+      _puzzleCompletionHandled = true;
+      _interactionEnabled = false;
+    });
+
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Puzzle complete!')),
+    );
+
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+
+    if (!mounted) {
+      return;
+    }
+
+    await _goToNextPuzzle();
+  }
+
+  Future<void> _goToNextPuzzle() async {
+    final nextPuzzleId =
+        await _puzzleRepository.getNextEnabledPuzzleId(widget.puzzleId);
+
+    if (!mounted) {
+      return;
+    }
+
+    if (nextPuzzleId == null) {
+      Navigator.of(context).pop();
+      return;
+    }
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(
+        builder: (_) => PuzzleScreen(puzzleId: nextPuzzleId),
+      ),
+    );
   }
 
   String _userFacingError(Object error) {
@@ -325,6 +500,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                         pieces: _playPieces,
                         tileSize: boardCellSize,
                         onPiecesChanged: _onPiecesChanged,
+                        interactionEnabled: _interactionEnabled,
                       ),
                   ],
                 ),

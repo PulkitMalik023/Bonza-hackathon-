@@ -8,3 +8,6 @@ enum PuzzlePieceSource {
 }
 
 const PuzzlePieceSource kPuzzlePieceSource = PuzzlePieceSource.deconstructed;
+
+/// Logs word/puzzle completion checks, grouping, and drop results.
+const bool kLogPuzzleCompletion = true;

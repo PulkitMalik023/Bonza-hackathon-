@@ -25,6 +25,15 @@ class PuzzleRepository {
     return null;
   }
 
+  Future<int?> getNextEnabledPuzzleId(int currentId) async {
+    final puzzles = await loadPuzzles();
+    final currentIndex = puzzles.indexWhere((puzzle) => puzzle.id == currentId);
+    if (currentIndex < 0 || currentIndex >= puzzles.length - 1) {
+      return null;
+    }
+    return puzzles[currentIndex + 1].id;
+  }
+
   Future<List<PuzzleContent>> _loadAllPuzzles() async {
     final jsonString = await rootBundle.loadString(assetPath);
     final dynamic decoded = jsonDecode(jsonString);
