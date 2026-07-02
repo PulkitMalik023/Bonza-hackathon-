@@ -5,7 +5,7 @@ import 'package:jam_pro/features/puzzle/domain/puzzle_board_state.dart';
 import 'package:jam_pro/features/puzzle/domain/puzzle_piece.dart';
 
 void main() {
-  test('buildPlayAreaLetterMap excludes pieces still at spawn', () {
+  test('buildPlayAreaLetterMap includes all pieces on grid including at home', () {
     final pieces = [
       PuzzlePiece(
         id: 'play',
@@ -35,9 +35,70 @@ void main() {
 
     final playArea = buildPlayAreaLetterMap(pieces);
 
-    expect(playArea.length, 2);
+    expect(playArea.length, 4);
     expect(playArea[const BoardCellPosition(row: 1, col: 1)], 'A');
-    expect(playArea.containsKey(const BoardCellPosition(row: 5, col: 0)), isFalse);
+    expect(playArea[const BoardCellPosition(row: 5, col: 0)], 'L');
+    expect(playArea[const BoardCellPosition(row: 5, col: 1)], 'E');
+  });
+
+  test('buildBoardChangeScanScope includes tray piece cells on full grid map', () {
+    final board = {
+      const BoardCellPosition(row: 12, col: 3): 'N',
+      const BoardCellPosition(row: 12, col: 4): 'G',
+      const BoardCellPosition(row: 12, col: 5): 'O',
+    };
+
+    final scope = buildBoardChangeScanScope(
+      affectedCells: {const BoardCellPosition(row: 12, col: 3)},
+      playAreaBoard: board,
+    );
+
+    expect(scope, isNotEmpty);
+    expect(scope.contains(const BoardCellPosition(row: 12, col: 3)), isTrue);
+  });
+
+  test('buildPlayAreaLetterMap includes completed group at formation anchor', () {
+    final knifeGroup = PuzzlePiece.completedClusterGroup(
+      clusterKey: 'cluster_6_0',
+      anchorRow: 6,
+      anchorCol: 0,
+      cells: const [
+        PieceCell(letter: 'K', rowOffset: 0, colOffset: 0),
+        PieceCell(letter: 'N', rowOffset: 0, colOffset: 1),
+        PieceCell(letter: 'I', rowOffset: 0, colOffset: 2),
+        PieceCell(letter: 'F', rowOffset: 0, colOffset: 3),
+        PieceCell(letter: 'E', rowOffset: 0, colOffset: 4),
+      ],
+      completedAnswers: {'KNIFE'},
+    );
+
+    final playArea = buildPlayAreaLetterMap([knifeGroup]);
+
+    expect(playArea.length, 5);
+    expect(playArea[const BoardCellPosition(row: 6, col: 0)], 'K');
+    expect(playArea[const BoardCellPosition(row: 6, col: 4)], 'E');
+    expect(isPieceAtSpawn(knifeGroup), isFalse);
+  });
+
+  test('buildBoardChangeScanScope includes completed group dropped at formation anchor', () {
+    final board = {
+      const BoardCellPosition(row: 6, col: 0): 'K',
+      const BoardCellPosition(row: 6, col: 1): 'N',
+      const BoardCellPosition(row: 6, col: 2): 'I',
+      const BoardCellPosition(row: 6, col: 3): 'F',
+      const BoardCellPosition(row: 6, col: 4): 'E',
+    };
+
+    final scope = buildBoardChangeScanScope(
+      affectedCells: {
+        const BoardCellPosition(row: 6, col: 0),
+        const BoardCellPosition(row: 6, col: 4),
+      },
+      playAreaBoard: board,
+    );
+
+    expect(scope, isNotEmpty);
+    expect(scope.contains(const BoardCellPosition(row: 6, col: 0)), isTrue);
   });
 
   test('getAffectedCellsForPiece unions before and after anchors', () {

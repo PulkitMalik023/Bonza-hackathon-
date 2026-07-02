@@ -31,6 +31,10 @@ CompletionScanResult runCompletionScan({
   required List<String> targetWords,
   required Set<String> completedAnswers,
   CompletionScanSource source = CompletionScanSource.boardChange,
+  int? puzzleId,
+  String? puzzleCategory,
+  int? boardRows,
+  int? boardCols,
 }) {
   final targetAnswerSet = normalizeTargetAnswers(targetWords);
   final playAreaBoard = buildPlayAreaLetterMap(pieces);
@@ -59,12 +63,18 @@ CompletionScanResult runCompletionScan({
   );
 
   logMatrixCompletionScan(
+    targetWordsFromPuzzle: targetWords,
     targetAnswers: targetAnswerSet,
     completedAnswers: completedAnswers,
     scanScopeCells: scopedCells,
     playAreaBoard: playAreaBoard,
     matchedLines: matchedLines,
+    pieces: pieces,
     source: source.name,
+    puzzleId: puzzleId,
+    puzzleCategory: puzzleCategory,
+    boardRows: boardRows,
+    boardCols: boardCols,
   );
 
   if (matchedLines.isEmpty) {

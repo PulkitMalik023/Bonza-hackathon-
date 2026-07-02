@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jam_pro/features/puzzle/data/generators/puzzle_layout_generator.dart';
 import 'package:jam_pro/features/puzzle/domain/deconstructed_pieces_builder.dart';
@@ -31,7 +33,7 @@ void main() {
       }
     });
 
-    test('assigns non-overlapping spawn anchors inside canvas', () {
+    test('assigns non-overlapping random scatter anchors inside canvas', () {
       final layouts = generator.generateAllLayouts(
         ['NORTH', 'SOUTH', 'EAST', 'WEST'],
       );
@@ -43,6 +45,7 @@ void main() {
         layout: layouts.first,
         canvasRows: canvasRows,
         canvasCols: canvasCols,
+        random: Random(42),
       );
 
       expect(pieceSpawnAnchorsAreNonOverlapping(pieces), isTrue);
@@ -54,6 +57,33 @@ void main() {
         ),
         isTrue,
       );
+    });
+
+    test('seeded random scatter is deterministic', () {
+      final layouts = generator.generateAllLayouts(['SPOON', 'FORK', 'KNIFE']);
+      expect(layouts, isNotEmpty);
+
+      const canvasRows = 20;
+      const canvasCols = 12;
+
+      final first = buildDeconstructedPlayPieces(
+        layout: layouts.first,
+        canvasRows: canvasRows,
+        canvasCols: canvasCols,
+        random: Random(7),
+      );
+      final second = buildDeconstructedPlayPieces(
+        layout: layouts.first,
+        canvasRows: canvasRows,
+        canvasCols: canvasCols,
+        random: Random(7),
+      );
+
+      expect(first.length, second.length);
+      for (var i = 0; i < first.length; i++) {
+        expect(first[i].anchorRow, second[i].anchorRow);
+        expect(first[i].anchorCol, second[i].anchorCol);
+      }
     });
 
     test('rebuilds with different chunk shapes when layout changes', () {

@@ -244,7 +244,6 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer> {
     );
 
     _logDropResult(piece, result);
-    logPiecePlacementResult(piece: piece, result: result);
 
     final startRow = _dragStartAnchorRow ?? piece.spawnAnchorRow;
     final startCol = _dragStartAnchorCol ?? piece.spawnAnchorCol;
@@ -258,6 +257,8 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer> {
       _resetDragState();
       _rebuildOccupancy();
     });
+
+    logPiecePlacementResult(piece: piece, result: result);
 
     final affectedCells = getAffectedCellsForPiece(
       piece: piece,

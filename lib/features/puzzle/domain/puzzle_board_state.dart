@@ -14,6 +14,12 @@ class PiecesChangeEvent {
 }
 
 bool isPieceAtSpawn(PuzzlePiece piece) {
+  // Completed groups stay on the play area even when anchor matches their
+  // formation position (spawnAnchor is set there at grouping time).
+  if (piece.isCompletedWordGroup) {
+    return false;
+  }
+
   return piece.anchorRow == piece.spawnAnchorRow &&
       piece.anchorCol == piece.spawnAnchorCol;
 }
@@ -35,23 +41,7 @@ Map<BoardCellPosition, String> buildBoardLetterMap(List<PuzzlePiece> pieces) {
 }
 
 Map<BoardCellPosition, String> buildPlayAreaLetterMap(List<PuzzlePiece> pieces) {
-  final board = <BoardCellPosition, String>{};
-
-  for (final piece in pieces) {
-    if (isPieceAtSpawn(piece)) {
-      continue;
-    }
-
-    for (final cell in piece.cells) {
-      final position = BoardCellPosition(
-        row: piece.anchorRow + cell.rowOffset,
-        col: piece.anchorCol + cell.colOffset,
-      );
-      board[position] = cell.letter;
-    }
-  }
-
-  return board;
+  return buildBoardLetterMap(pieces);
 }
 
 Set<BoardCellPosition> getAffectedCellsForPiece({
@@ -147,10 +137,6 @@ Map<BoardCellPosition, PuzzlePiece> buildBoardCellOwnershipMap(
   final ownership = <BoardCellPosition, PuzzlePiece>{};
 
   for (final piece in pieces) {
-    if (isPieceAtSpawn(piece)) {
-      continue;
-    }
-
     for (final cell in piece.cells) {
       ownership[BoardCellPosition(
         row: piece.anchorRow + cell.rowOffset,

@@ -176,6 +176,10 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       targetWords: puzzle.words,
       completedAnswers: _completedAnswers,
       source: CompletionScanSource.initialization,
+      puzzleId: puzzle.id,
+      puzzleCategory: puzzle.category,
+      boardRows: _playCanvasRows,
+      boardCols: _playCanvasCols,
     );
 
     _applyCompletionScanResult(result);
@@ -338,14 +342,23 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     _lastEvaluatedPiecesSnapshot = snapshot;
 
     final playAreaBoard = buildPlayAreaLetterMap(event.pieces);
-    final scanScope = buildBoardChangeScanScope(
+    if (playAreaBoard.isEmpty) {
+      logCompletionSkipped('board has no letters on grid');
+      return;
+    }
+
+    var scanScope = buildBoardChangeScanScope(
       affectedCells: event.affectedCells,
       playAreaBoard: playAreaBoard,
     );
 
     if (scanScope.isEmpty) {
-      logCompletionSkipped('affected cells are outside play area');
-      return;
+      final affectedOnBoard = event.affectedCells
+          .where((cell) => playAreaBoard.containsKey(cell))
+          .toSet();
+      scanScope = affectedOnBoard.isNotEmpty
+          ? affectedOnBoard
+          : getAllPlayAreaCells(playAreaBoard);
     }
 
     final result = runCompletionScan(
@@ -354,6 +367,10 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       targetWords: puzzle.words,
       completedAnswers: _completedAnswers,
       source: CompletionScanSource.boardChange,
+      puzzleId: puzzle.id,
+      puzzleCategory: puzzle.category,
+      boardRows: _playCanvasRows,
+      boardCols: _playCanvasCols,
     );
 
     if (result.hasChanges) {

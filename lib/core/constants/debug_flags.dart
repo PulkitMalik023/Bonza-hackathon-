@@ -9,5 +9,8 @@ enum PuzzlePieceSource {
 
 const PuzzlePieceSource kPuzzlePieceSource = PuzzlePieceSource.deconstructed;
 
-/// Logs word/puzzle completion checks, grouping, and drop results.
-const bool kLogPuzzleCompletion = true;
+/// Legacy flag; Pulkit word-check logs use [kLogPulkitWordCheck] only.
+const bool kLogPuzzleCompletion = false;
+
+/// Filter console with "Pulkit" after tile release: targets, formed H/V words, comparisons.
+const bool kLogPulkitWordCheck = true;
