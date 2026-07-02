@@ -1,13 +1,88 @@
-import 'dart:math';
-
 import 'package:flutter/foundation.dart';
 
 import '../models/generated_puzzle_layout.dart';
-import '../models/grid_cell.dart';
+import '../models/placed_word.dart';
 import '../models/puzzle_content.dart';
-import '../models/word_placement.dart';
+import '../models/puzzle_layout.dart';
 
 class PuzzleLayoutGenerator {
+  List<PuzzleLayout> generateAllLayouts(List<String> words) {
+    final normalizedWords = words.map((word) => word.toUpperCase()).toList();
+
+    if (normalizedWords.isEmpty) {
+      debugPrint('[PuzzleLayoutGenerator] No layouts found for words: []');
+      return const [];
+    }
+
+    if (!_canPotentiallyConnect(normalizedWords)) {
+      debugPrint(
+        '[PuzzleLayoutGenerator] No layouts found for words: $normalizedWords '
+        '(words cannot form a connected graph)',
+      );
+      return const [];
+    }
+
+    final sortedWords = [...normalizedWords]
+      ..sort((a, b) {
+        final lengthCompare = b.length.compareTo(a.length);
+        if (lengthCompare != 0) {
+          return lengthCompare;
+        }
+        return a.compareTo(b);
+      });
+
+    debugPrint(
+      '[PuzzleLayoutGenerator] Generating all layouts for words: $sortedWords',
+    );
+
+    final occupied = <String, String>{};
+    final placements = <PlacedWord>[];
+
+    final seedWord = sortedWords.first;
+    final seedPlacement = PlacedWord(
+      word: seedWord,
+      row: 0,
+      col: 0,
+      direction: WordDirection.horizontal,
+    );
+    _applyWord(seedPlacement, occupied);
+    placements.add(seedPlacement);
+    debugPrint('[PuzzleLayoutGenerator] Seed placement: $seedPlacement');
+
+    final results = <PuzzleLayout>[];
+    final seenSignatures = <String>{};
+
+    _backtrackPlaceWords(
+      remainingWords: sortedWords.sublist(1),
+      wordIndex: 0,
+      placements: placements,
+      occupied: occupied,
+      results: results,
+      seenSignatures: seenSignatures,
+    );
+
+    debugPrint(
+      '[PuzzleLayoutGenerator] Total unique layouts found: ${results.length}',
+    );
+    for (final layout in results) {
+      debugPrint(
+        '[PuzzleLayoutGenerator] Layout signature: ${PuzzleLayout.signature(layout)}',
+      );
+    }
+    if (results.isEmpty) {
+      debugPrint(
+        '[PuzzleLayoutGenerator] No layouts found for words: $sortedWords',
+      );
+    }
+
+    return List.unmodifiable(results);
+  }
+
+  PuzzleLayout? generateSingleLayout(List<String> words) {
+    final layouts = generateAllLayouts(words);
+    return layouts.isNotEmpty ? layouts.first : null;
+  }
+
   GeneratedPuzzleLayout generate(PuzzleContent content) {
     final words = content.words.map((word) => word.toUpperCase()).toList();
     final puzzleId = content.id.toString();
@@ -25,73 +100,31 @@ class PuzzleLayoutGenerator {
       );
     }
 
-    final sortedWords = [...words]
-      ..sort((a, b) {
-        final lengthCompare = b.length.compareTo(a.length);
-        if (lengthCompare != 0) {
-          return lengthCompare;
-        }
-        return a.compareTo(b);
-      });
-
     debugPrint(
       '[PuzzleLayoutGenerator] Generating layout for $puzzleId '
-      '(${content.category}) with words: $sortedWords',
+      '(${content.category}) with words: $words',
     );
 
-    final occupied = <String, String>{};
-    final placements = <WordPlacement>[];
-
-    final seedWord = sortedWords.first;
-    final seedPlacement = WordPlacement(
-      word: seedWord,
-      startRow: 0,
-      startCol: 0,
-      direction: WordDirection.horizontal,
-    );
-    _applyWord(seedPlacement, occupied);
-    placements.add(seedPlacement);
-    debugPrint('[PuzzleLayoutGenerator] Seed placement: $seedPlacement');
-
-    final remainingWords = sortedWords.sublist(1);
-    final success = _backtrackPlaceWords(
-      remainingWords: remainingWords,
-      wordIndex: 0,
-      placements: placements,
-      occupied: occupied,
-    );
-
-    if (!success) {
+    final layouts = generateAllLayouts(words);
+    if (layouts.isEmpty) {
       throw StateError(
         'Could not generate connected layout for puzzle $puzzleId',
       );
     }
 
-    final occupiedCells = _buildOccupiedCells(occupied);
-    final bounds = _computeBounds(occupiedCells);
+    final layout = layouts.first;
 
     debugPrint('[PuzzleLayoutGenerator] Final placements for $puzzleId:');
-    for (final placement in placements) {
+    for (final placement in layout.placedWords) {
       debugPrint('  $placement');
     }
     debugPrint(
       '[PuzzleLayoutGenerator] Bounds: '
-      'rows ${bounds.minRow}..${bounds.maxRow}, '
-      'cols ${bounds.minCol}..${bounds.maxCol}, '
-      'occupied cells: ${occupiedCells.length}',
+      'rows ${layout.minRow}..${layout.maxRow}, '
+      'cols ${layout.minCol}..${layout.maxCol}',
     );
 
-    return GeneratedPuzzleLayout(
-      puzzleId: puzzleId,
-      category: content.category,
-      words: sortedWords,
-      placements: List.unmodifiable(placements),
-      occupiedCells: List.unmodifiable(occupiedCells),
-      minRow: bounds.minRow,
-      maxRow: bounds.maxRow,
-      minCol: bounds.minCol,
-      maxCol: bounds.maxCol,
-    );
+    return GeneratedPuzzleLayout.fromPuzzleContent(content, layout);
   }
 
   bool _canPotentiallyConnect(List<String> words) {
@@ -132,14 +165,17 @@ class PuzzleLayoutGenerator {
     return connected;
   }
 
-  bool _backtrackPlaceWords({
+  void _backtrackPlaceWords({
     required List<String> remainingWords,
     required int wordIndex,
-    required List<WordPlacement> placements,
+    required List<PlacedWord> placements,
     required Map<String, String> occupied,
+    required List<PuzzleLayout> results,
+    required Set<String> seenSignatures,
   }) {
     if (wordIndex >= remainingWords.length) {
-      return true;
+      _storeIfUnique(placements, results, seenSignatures);
+      return;
     }
 
     final word = remainingWords[wordIndex];
@@ -158,32 +194,47 @@ class PuzzleLayoutGenerator {
       placements.add(candidate);
       debugPrint('[PuzzleLayoutGenerator] Trying: $candidate');
 
-      if (_backtrackPlaceWords(
+      _backtrackPlaceWords(
         remainingWords: remainingWords,
         wordIndex: wordIndex + 1,
         placements: placements,
         occupied: occupied,
-      )) {
-        return true;
-      }
+        results: results,
+        seenSignatures: seenSignatures,
+      );
 
       placements.removeLast();
       _removeWord(candidate, occupied, placements);
       debugPrint('[PuzzleLayoutGenerator] Backtracking from: $candidate');
     }
-
-    return false;
   }
 
-  List<WordPlacement> _generateCandidates(
-    String newWord,
-    List<WordPlacement> placements,
+  void _storeIfUnique(
+    List<PlacedWord> placements,
+    List<PuzzleLayout> results,
+    Set<String> seenSignatures,
   ) {
-    final candidates = <WordPlacement>[];
+    final layout = PuzzleLayout.normalize(
+      List<PlacedWord>.unmodifiable(placements),
+    );
+    final layoutSignature = PuzzleLayout.signature(layout);
+
+    if (seenSignatures.add(layoutSignature)) {
+      results.add(layout);
+      debugPrint(
+        '[PuzzleLayoutGenerator] Stored layout signature: $layoutSignature',
+      );
+    }
+  }
+
+  List<PlacedWord> _generateCandidates(
+    String newWord,
+    List<PlacedWord> placements,
+  ) {
+    final candidates = <PlacedWord>[];
     final seen = <String>{};
 
-    for (var placedIndex = 0; placedIndex < placements.length; placedIndex++) {
-      final placed = placements[placedIndex];
+    for (final placed in placements) {
       for (var newLetterIndex = 0; newLetterIndex < newWord.length; newLetterIndex++) {
         for (var placedLetterIndex = 0;
             placedLetterIndex < placed.word.length;
@@ -199,8 +250,7 @@ class PuzzleLayoutGenerator {
             placedLetterIndex: placedLetterIndex,
           );
 
-          final key =
-              '${candidate.startRow},${candidate.startCol},${candidate.direction.index}';
+          final key = '${candidate.row},${candidate.col},${candidate.direction.index}';
           if (seen.add(key)) {
             candidates.add(candidate);
           }
@@ -209,11 +259,11 @@ class PuzzleLayoutGenerator {
     }
 
     candidates.sort((a, b) {
-      final rowCompare = a.startRow.compareTo(b.startRow);
+      final rowCompare = a.row.compareTo(b.row);
       if (rowCompare != 0) {
         return rowCompare;
       }
-      final colCompare = a.startCol.compareTo(b.startCol);
+      final colCompare = a.col.compareTo(b.col);
       if (colCompare != 0) {
         return colCompare;
       }
@@ -223,56 +273,62 @@ class PuzzleLayoutGenerator {
     return candidates;
   }
 
-  WordPlacement _buildPlacementFromCrossing({
+  PlacedWord _buildPlacementFromCrossing({
     required String newWord,
     required int newLetterIndex,
-    required WordPlacement placed,
+    required PlacedWord placed,
     required int placedLetterIndex,
   }) {
     if (placed.direction == WordDirection.horizontal) {
-      final crossRow = placed.startRow;
-      final crossCol = placed.startCol + placedLetterIndex;
-      return WordPlacement(
+      final crossRow = placed.row;
+      final crossCol = placed.col + placedLetterIndex;
+      return PlacedWord(
         word: newWord,
-        startRow: crossRow - newLetterIndex,
-        startCol: crossCol,
+        row: crossRow - newLetterIndex,
+        col: crossCol,
         direction: WordDirection.vertical,
       );
     }
 
-    final crossRow = placed.startRow + placedLetterIndex;
-    final crossCol = placed.startCol;
-    return WordPlacement(
+    final crossRow = placed.row + placedLetterIndex;
+    final crossCol = placed.col;
+    return PlacedWord(
       word: newWord,
-      startRow: crossRow,
-      startCol: crossCol - newLetterIndex,
+      row: crossRow,
+      col: crossCol - newLetterIndex,
       direction: WordDirection.horizontal,
     );
   }
 
   bool _canPlaceWord(
     String word,
-    WordPlacement placement,
+    PlacedWord placement,
     Map<String, String> occupied,
   ) {
+    var overlapsExisting = false;
+
     for (var index = 0; index < word.length; index++) {
       final cell = _getCellForLetter(placement, index);
       final key = _cellKey(cell.row, cell.col);
       final existingLetter = occupied[key];
 
-      if (existingLetter != null && existingLetter != word[index]) {
+      if (existingLetter != null) {
+        if (existingLetter != word[index]) {
+          return false;
+        }
+        overlapsExisting = true;
+      } else if (!_perpendicularNeighborsEmpty(
+        cell.row,
+        cell.col,
+        placement.direction,
+        occupied,
+      )) {
         return false;
       }
+    }
 
-      if (existingLetter == null &&
-          !_perpendicularNeighborsEmpty(
-            cell.row,
-            cell.col,
-            placement.direction,
-            occupied,
-          )) {
-        return false;
-      }
+    if (!overlapsExisting) {
+      return false;
     }
 
     return _endCapsEmpty(word, placement, occupied);
@@ -295,45 +351,45 @@ class PuzzleLayoutGenerator {
 
   bool _endCapsEmpty(
     String word,
-    WordPlacement placement,
+    PlacedWord placement,
     Map<String, String> occupied,
   ) {
     if (placement.direction == WordDirection.horizontal) {
       return !occupied.containsKey(
-            _cellKey(placement.startRow, placement.startCol - 1),
+            _cellKey(placement.row, placement.col - 1),
           ) &&
           !occupied.containsKey(
             _cellKey(
-              placement.startRow,
-              placement.startCol + word.length,
+              placement.row,
+              placement.col + word.length,
             ),
           );
     }
 
     return !occupied.containsKey(
-          _cellKey(placement.startRow - 1, placement.startCol),
+          _cellKey(placement.row - 1, placement.col),
         ) &&
         !occupied.containsKey(
           _cellKey(
-            placement.startRow + word.length,
-            placement.startCol,
+            placement.row + word.length,
+            placement.col,
           ),
         );
   }
 
   ({int row, int col}) _getCellForLetter(
-    WordPlacement placement,
+    PlacedWord placement,
     int letterIndex,
   ) {
     switch (placement.direction) {
       case WordDirection.horizontal:
-        return (row: placement.startRow, col: placement.startCol + letterIndex);
+        return (row: placement.row, col: placement.col + letterIndex);
       case WordDirection.vertical:
-        return (row: placement.startRow + letterIndex, col: placement.startCol);
+        return (row: placement.row + letterIndex, col: placement.col);
     }
   }
 
-  void _applyWord(WordPlacement placement, Map<String, String> occupied) {
+  void _applyWord(PlacedWord placement, Map<String, String> occupied) {
     for (var index = 0; index < placement.word.length; index++) {
       final cell = _getCellForLetter(placement, index);
       occupied[_cellKey(cell.row, cell.col)] = placement.word[index];
@@ -341,9 +397,9 @@ class PuzzleLayoutGenerator {
   }
 
   void _removeWord(
-    WordPlacement placement,
+    PlacedWord placement,
     Map<String, String> occupied,
-    List<WordPlacement> remainingPlacements,
+    List<PlacedWord> remainingPlacements,
   ) {
     for (var index = 0; index < placement.word.length; index++) {
       final cell = _getCellForLetter(placement, index);
@@ -358,7 +414,7 @@ class PuzzleLayoutGenerator {
   bool _isCellUsedByAnyPlacement(
     int row,
     int col,
-    List<WordPlacement> placements,
+    List<PlacedWord> placements,
   ) {
     for (final placement in placements) {
       for (var index = 0; index < placement.word.length; index++) {
@@ -369,57 +425,6 @@ class PuzzleLayoutGenerator {
       }
     }
     return false;
-  }
-
-  List<GridCell> _buildOccupiedCells(Map<String, String> occupied) {
-    final cells = occupied.entries.map((entry) {
-      final parts = entry.key.split(',');
-      return GridCell(
-        row: int.parse(parts[0]),
-        col: int.parse(parts[1]),
-        letter: entry.value,
-      );
-    }).toList();
-
-    cells.sort((a, b) {
-      final rowCompare = a.row.compareTo(b.row);
-      if (rowCompare != 0) {
-        return rowCompare;
-      }
-      return a.col.compareTo(b.col);
-    });
-
-    return cells;
-  }
-
-  ({
-    int minRow,
-    int maxRow,
-    int minCol,
-    int maxCol,
-  }) _computeBounds(List<GridCell> cells) {
-    if (cells.isEmpty) {
-      return (minRow: 0, maxRow: 0, minCol: 0, maxCol: 0);
-    }
-
-    var minRow = cells.first.row;
-    var maxRow = cells.first.row;
-    var minCol = cells.first.col;
-    var maxCol = cells.first.col;
-
-    for (final cell in cells) {
-      minRow = min(minRow, cell.row);
-      maxRow = max(maxRow, cell.row);
-      minCol = min(minCol, cell.col);
-      maxCol = max(maxCol, cell.col);
-    }
-
-    return (
-      minRow: minRow,
-      maxRow: maxRow,
-      minCol: minCol,
-      maxCol: maxCol,
-    );
   }
 
   String _cellKey(int row, int col) => '$row,$col';

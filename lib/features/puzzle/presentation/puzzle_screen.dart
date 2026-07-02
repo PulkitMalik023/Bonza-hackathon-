@@ -6,8 +6,18 @@ import '../../../core/constants/board_constants.dart';
 import '../../shared/widgets/grid_background.dart';
 import '../data/generators/puzzle_layout_generator.dart';
 import '../data/models/generated_puzzle_layout.dart';
+import '../data/models/puzzle_content.dart';
+import '../data/models/puzzle_layout.dart';
 import '../data/repositories/puzzle_repository.dart';
 import 'widgets/solved_grid_board.dart';
+
+/// Returns the next layout index when cycling through [layoutCount] layouts.
+int nextLayoutIndex(int currentIndex, int layoutCount) {
+  if (layoutCount <= 1) {
+    return currentIndex;
+  }
+  return (currentIndex + 1) % layoutCount;
+}
 
 class PuzzleScreen extends StatefulWidget {
   const PuzzleScreen({
@@ -22,14 +32,27 @@ class PuzzleScreen extends StatefulWidget {
 }
 
 class _PuzzleScreenState extends State<PuzzleScreen> {
-  GeneratedPuzzleLayout? _layout;
+  PuzzleContent? _puzzle;
+  List<PuzzleLayout> _layouts = const [];
+  int _currentLayoutIndex = 0;
   String? _errorMessage;
   bool _isLoading = true;
+
+  PuzzleLayout? get _currentLayout =>
+      _layouts.isEmpty ? null : _layouts[_currentLayoutIndex];
 
   @override
   void initState() {
     super.initState();
     _loadAndGenerate();
+  }
+
+  @override
+  void didUpdateWidget(covariant PuzzleScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.puzzleId != widget.puzzleId) {
+      _loadAndGenerate();
+    }
   }
 
   Future<void> _loadAndGenerate() async {
@@ -38,7 +61,9 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
-      _layout = null;
+      _puzzle = null;
+      _layouts = const [];
+      _currentLayoutIndex = 0;
     });
 
     try {
@@ -52,18 +77,33 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
         throw StateError('Puzzle ${widget.puzzleId} is disabled');
       }
 
-      final layout = PuzzleLayoutGenerator().generate(puzzle);
+      final layouts = PuzzleLayoutGenerator().generateAllLayouts(puzzle.words);
 
-      debugPrint('[PuzzleScreen] Loaded puzzle: ${layout.puzzleId}');
-      debugPrint('[PuzzleScreen] Category: ${layout.category}');
-      debugPrint('[PuzzleScreen] Words: ${layout.words}');
+      debugPrint('[PuzzleScreen] Loaded puzzle: ${puzzle.id}');
+      debugPrint('[PuzzleScreen] Category: ${puzzle.category}');
+      debugPrint('[PuzzleScreen] Words: ${puzzle.words}');
+      debugPrint('[PuzzleScreen] Total layouts: ${layouts.length}');
+
+      if (layouts.isEmpty) {
+        if (!mounted) {
+          return;
+        }
+
+        setState(() {
+          _errorMessage = 'No valid layout found for this puzzle';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final currentLayout = layouts.first;
       debugPrint('[PuzzleScreen] Placements:');
-      for (final placement in layout.placements) {
+      for (final placement in currentLayout.placedWords) {
         debugPrint('[PuzzleScreen]   $placement');
       }
       debugPrint(
-        '[PuzzleScreen] Bounds: rows ${layout.minRow}..${layout.maxRow}, '
-        'cols ${layout.minCol}..${layout.maxCol}',
+        '[PuzzleScreen] Bounds: rows ${currentLayout.minRow}..${currentLayout.maxRow}, '
+        'cols ${currentLayout.minCol}..${currentLayout.maxCol}',
       );
 
       if (!mounted) {
@@ -71,7 +111,9 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       }
 
       setState(() {
-        _layout = layout;
+        _puzzle = puzzle;
+        _layouts = layouts;
+        _currentLayoutIndex = 0;
         _isLoading = false;
       });
     } catch (error, stackTrace) {
@@ -87,6 +129,23 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  void _shuffleLayout() {
+    if (_layouts.length <= 1) {
+      return;
+    }
+
+    setState(() {
+      _currentLayoutIndex = nextLayoutIndex(
+        _currentLayoutIndex,
+        _layouts.length,
+      );
+    });
+
+    debugPrint(
+      '[PuzzleScreen] Shuffled to layout ${_currentLayoutIndex + 1} / ${_layouts.length}',
+    );
   }
 
   String _userFacingError(Object error) {
@@ -105,12 +164,10 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final layout = _layout;
-
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: Text(layout?.category ?? 'Puzzle ${widget.puzzleId}'),
+        title: Text(_puzzle?.category ?? 'Puzzle ${widget.puzzleId}'),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -146,13 +203,19 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       );
     }
 
-    final layout = _layout;
-    if (layout == null) {
+    final puzzle = _puzzle;
+    final currentLayout = _currentLayout;
+    if (puzzle == null || currentLayout == null) {
       return const SizedBox.shrink();
     }
 
-    final rowCount = layout.maxRow - layout.minRow + 1;
-    final colCount = layout.maxCol - layout.minCol + 1;
+    final displayLayout = GeneratedPuzzleLayout.fromPuzzleContent(
+      puzzle,
+      currentLayout,
+    );
+
+    final rowCount = displayLayout.maxRow - displayLayout.minRow + 1;
+    final colCount = displayLayout.maxCol - displayLayout.minCol + 1;
     final boardWidth = colCount * BoardConstants.kBoardTileSize;
     final boardHeight = rowCount * BoardConstants.kBoardTileSize;
 
@@ -166,13 +229,32 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
             BoardConstants.kBoardOuterPadding,
             8,
           ),
-          child: Text(
-            layout.category,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface,
-                  fontWeight: FontWeight.bold,
-                ),
-            textAlign: TextAlign.center,
+          child: Column(
+            children: [
+              Text(
+                puzzle.category,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontWeight: FontWeight.bold,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    onPressed: _layouts.length > 1 ? _shuffleLayout : null,
+                    icon: const Icon(Icons.shuffle),
+                    tooltip: 'Shuffle layout',
+                  ),
+                  Text(
+                    'Layout ${_currentLayoutIndex + 1} / ${_layouts.length}',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
         Expanded(
@@ -194,7 +276,10 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                       Positioned(
                         left: left,
                         top: top,
-                        child: SolvedGridBoard(layout: layout),
+                        child: SolvedGridBoard(
+                          key: ValueKey(_currentLayoutIndex),
+                          layout: displayLayout,
+                        ),
                       ),
                     ],
                   ),

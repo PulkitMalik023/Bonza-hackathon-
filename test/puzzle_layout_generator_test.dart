@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jam_pro/features/puzzle/data/generators/puzzle_layout_generator.dart';
 import 'package:jam_pro/features/puzzle/data/models/grid_cell.dart';
+import 'package:jam_pro/features/puzzle/data/models/placed_word.dart';
+import 'package:jam_pro/features/puzzle/data/models/puzzle_layout.dart';
 import 'package:jam_pro/features/puzzle/data/repositories/puzzle_repository.dart';
 
 void main() {
@@ -57,6 +59,48 @@ void main() {
     expect(_isOccupiedGridConnected(layout.occupiedCells), isTrue);
   });
 
+  test('generateAllLayouts finds unique layouts for planets words', () {
+    const words = ['VENUS', 'NEPTUNE', 'MARS', 'SATURN', 'JUPITER'];
+    final layouts = generator.generateAllLayouts(words);
+
+    debugPrint('Planets layouts found: ${layouts.length}');
+    for (final layout in layouts) {
+      debugPrint('  signature: ${PuzzleLayout.signature(layout)}');
+    }
+
+    expect(layouts, isNotEmpty);
+
+    final signatures = layouts.map(PuzzleLayout.signature).toSet();
+    expect(signatures, hasLength(layouts.length));
+
+    for (final layout in layouts) {
+      expect(layout.minRow, 0);
+      expect(layout.minCol, 0);
+      expect(layout.placedWords, hasLength(words.length));
+      expect(
+        layout.placedWords.map((placed) => placed.word).toSet(),
+        words.toSet(),
+      );
+      expect(
+        _isOccupiedGridConnected(_occupiedCellsFromLayout(layout)),
+        isTrue,
+        reason: 'Layout must be connected: ${PuzzleLayout.signature(layout)}',
+      );
+    }
+  });
+
+  test('generateSingleLayout returns first layout from generateAllLayouts', () {
+    const words = ['VENUS', 'NEPTUNE', 'MARS', 'SATURN', 'JUPITER'];
+    final allLayouts = generator.generateAllLayouts(words);
+    final singleLayout = generator.generateSingleLayout(words);
+
+    expect(singleLayout, isNotNull);
+    expect(
+      PuzzleLayout.signature(singleLayout!),
+      PuzzleLayout.signature(allLayouts.first),
+    );
+  });
+
   test('generates connected layout for all enabled puzzles', () async {
     final puzzles = await repository.loadPuzzles();
     final failures = <int>[];
@@ -85,6 +129,32 @@ void main() {
       reason: 'These enabled puzzles failed generation: $failures',
     );
   });
+}
+
+List<GridCell> _occupiedCellsFromLayout(PuzzleLayout layout) {
+  final occupied = <String, String>{};
+
+  for (final placed in layout.placedWords) {
+    for (var index = 0; index < placed.word.length; index++) {
+      final row = placed.direction == WordDirection.horizontal
+          ? placed.row
+          : placed.row + index;
+      final col = placed.direction == WordDirection.horizontal
+          ? placed.col + index
+          : placed.col;
+      occupied['$row,$col'] = placed.word[index];
+    }
+  }
+
+  return occupied.entries
+      .map(
+        (entry) => GridCell(
+          row: int.parse(entry.key.split(',')[0]),
+          col: int.parse(entry.key.split(',')[1]),
+          letter: entry.value,
+        ),
+      )
+      .toList();
 }
 
 bool _isOccupiedGridConnected(List<GridCell> cells) {
