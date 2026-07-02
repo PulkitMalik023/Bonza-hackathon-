@@ -2,6 +2,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 
 import '../constants/puzzle_sounds.dart';
+import 'audio_settings_service.dart';
 
 class PuzzleAudioController {
   PuzzleAudioController._({
@@ -21,20 +22,39 @@ class PuzzleAudioController {
   static const _loopPlayerId = 'puzzle_loop';
   static const _sfxPlayerId = 'puzzle_sfx';
 
+  static bool _globalAudioConfigured = false;
+
   AudioPlayer? _loopPlayer;
   AudioPlayer? _sfxPlayer;
   bool _loopPlaying = false;
   bool _configured = false;
   bool _disposed = false;
-
   AudioPlayer get _loop =>
       _loopPlayer ??= AudioPlayer(playerId: _loopPlayerId);
   AudioPlayer get _sfx => _sfxPlayer ??= AudioPlayer(playerId: _sfxPlayerId);
 
   bool get isLoopPlaying => _loopPlaying;
 
+  Future<void> configureGlobalAudio() async {
+    if (_globalAudioConfigured) {
+      return;
+    }
+
+    try {
+      await AudioPlayer.global.setAudioContext(gameAudioContext);
+      _globalAudioConfigured = true;
+    } catch (error, stackTrace) {
+      debugPrint('[PuzzleAudioController] Global audio setup failed: $error');
+      debugPrint('[PuzzleAudioController] $stackTrace');
+    }
+  }
+
   Future<void> ensurePuzzleLoopPlaying() async {
     if (_disposed) {
+      return;
+    }
+
+    if (!AudioSettingsService.instance.musicEnabled) {
       return;
     }
 
@@ -60,12 +80,8 @@ class PuzzleAudioController {
     }
   }
 
-  Future<void> leavePuzzleSession() async {
-    await stopPuzzleLoopSound();
-  }
-
   Future<void> playPuzzleLoopSound() async {
-    if (_disposed || _loopPlaying) {
+    if (_disposed || _loopPlaying || !AudioSettingsService.instance.musicEnabled) {
       return;
     }
 
@@ -121,11 +137,24 @@ class PuzzleAudioController {
   }
 
   Future<void> playTilePickSound() async {
+    if (!AudioSettingsService.instance.sfxEnabled) {
+      return;
+    }
     await _playSfx(PuzzleSounds.tilePick);
   }
 
   Future<void> playTileDropSound() async {
+    if (!AudioSettingsService.instance.sfxEnabled) {
+      return;
+    }
     await _playSfx(PuzzleSounds.tileDrop);
+  }
+
+  Future<void> playButtonTapSound() async {
+    if (!AudioSettingsService.instance.sfxEnabled) {
+      return;
+    }
+    await _playSfx(PuzzleSounds.buttonTap);
   }
 
   Future<void> _ensureConfigured() async {
@@ -133,13 +162,14 @@ class PuzzleAudioController {
       return;
     }
 
-    await _loop.setPlayerMode(PlayerMode.mediaPlayer);
-    await _loop.setAudioContext(loopAudioContext);
-
-    await _sfx.setPlayerMode(PlayerMode.lowLatency);
-    await _sfx.setAudioContext(sfxAudioContext);
-
-    _configured = true;
+    try {
+      await _loop.setPlayerMode(PlayerMode.mediaPlayer);
+      await _sfx.setPlayerMode(PlayerMode.lowLatency);
+      _configured = true;
+    } catch (error, stackTrace) {
+      debugPrint('[PuzzleAudioController] Player setup failed: $error');
+      debugPrint('[PuzzleAudioController] $stackTrace');
+    }
   }
 
   Future<void> _playSfx(String assetPath) async {
@@ -149,7 +179,12 @@ class PuzzleAudioController {
 
     try {
       await _ensureConfigured();
-      await _sfx.stop();
+
+      final sfxState = _sfx.state;
+      if (sfxState == PlayerState.playing || sfxState == PlayerState.paused) {
+        await _sfx.stop();
+      }
+
       await _sfx.setReleaseMode(ReleaseMode.stop);
       await _sfx.setVolume(0.7);
       await _sfx.play(AssetSource(_assetPath(assetPath)));
@@ -223,28 +258,12 @@ class PuzzleAudioController {
   }
 
   @visibleForTesting
-  static AudioContext get loopAudioContext => AudioContext(
-        android: const AudioContextAndroid(
-          contentType: AndroidContentType.music,
-          usageType: AndroidUsageType.game,
-          audioFocus: AndroidAudioFocus.gain,
-        ),
-        iOS: AudioContextIOS(
-          category: AVAudioSessionCategory.playback,
-          options: {AVAudioSessionOptions.mixWithOthers},
-        ),
-      );
+  static AudioContext get gameAudioContext => AudioContextConfig(
+        focus: AudioContextConfigFocus.mixWithOthers,
+      ).build();
 
   @visibleForTesting
-  static AudioContext get sfxAudioContext => AudioContext(
-        android: const AudioContextAndroid(
-          contentType: AndroidContentType.sonification,
-          usageType: AndroidUsageType.game,
-          audioFocus: AndroidAudioFocus.none,
-        ),
-        iOS: AudioContextIOS(
-          category: AVAudioSessionCategory.playback,
-          options: {AVAudioSessionOptions.mixWithOthers},
-        ),
-      );
+  static void resetGlobalAudioForTest() {
+    _globalAudioConfigured = false;
+  }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/audio/ui_button_sound.dart';
 import '../../../../core/category/category_icon_mapper.dart';
 import '../../../../core/constants/home_assets.dart';
 import '../../../../core/theme/puzzle_theme.dart';
@@ -24,7 +25,7 @@ class HomeLevelCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onTap,
+        onTap: withButtonTap(onTap),
         borderRadius: BorderRadius.circular(PuzzleTheme.levelCardRadius),
         child: Ink(
           decoration: BoxDecoration(
@@ -126,7 +127,7 @@ class _ArrowButton extends StatelessWidget {
       shape: const CircleBorder(),
       elevation: 2,
       child: InkWell(
-        onTap: onTap,
+        onTap: withButtonTap(onTap),
         customBorder: const CircleBorder(),
         child: SizedBox(
           width: 40,

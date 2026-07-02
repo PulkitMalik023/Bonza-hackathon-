@@ -27,9 +27,9 @@ import 'widgets/puzzle_board_container.dart';
 import 'widgets/puzzle_board_grid.dart';
 import 'widgets/puzzle_bottom_action_bar.dart';
 import 'widgets/puzzle_chunks_layer.dart';
-import 'widgets/puzzle_hint_tooltip_row.dart';
 import 'widgets/puzzle_nature_background.dart';
 import 'widgets/puzzle_top_header.dart';
+import 'how_to_play/how_to_play_popup.dart';
 
 /// Returns the next layout index when cycling through [layoutCount] layouts.
 int nextLayoutIndex(int currentIndex, int layoutCount) {
@@ -51,7 +51,7 @@ class PuzzleScreen extends StatefulWidget {
   State<PuzzleScreen> createState() => _PuzzleScreenState();
 }
 
-class _PuzzleScreenState extends State<PuzzleScreen> with WidgetsBindingObserver {
+class _PuzzleScreenState extends State<PuzzleScreen> {
   final PuzzleRepository _puzzleRepository = PuzzleRepository();
   final PuzzleMoveHistory _moveHistory = PuzzleMoveHistory();
 
@@ -78,7 +78,6 @@ class _PuzzleScreenState extends State<PuzzleScreen> with WidgetsBindingObserver
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
     CoinService.instance.load();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _audioController.ensurePuzzleLoopPlaying();
@@ -88,28 +87,12 @@ class _PuzzleScreenState extends State<PuzzleScreen> with WidgetsBindingObserver
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
   Future<void> _leavePuzzle() async {
-    await _audioController.leavePuzzleSession();
     if (mounted) {
       Navigator.of(context).pop();
-    }
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    switch (state) {
-      case AppLifecycleState.paused:
-      case AppLifecycleState.detached:
-      case AppLifecycleState.hidden:
-        _audioController.pausePuzzleLoopSound();
-      case AppLifecycleState.resumed:
-        _audioController.resumePuzzleLoopSound();
-      case AppLifecycleState.inactive:
-        break;
     }
   }
 
@@ -311,35 +294,6 @@ class _PuzzleScreenState extends State<PuzzleScreen> with WidgetsBindingObserver
     }
   }
 
-  void _shuffleLayout() {
-    if (_layouts.length <= 1) {
-      return;
-    }
-
-    setState(() {
-      _currentLayoutIndex = nextLayoutIndex(
-        _currentLayoutIndex,
-        _layouts.length,
-      );
-      _resetCompletionState();
-      _moveHistory.clear();
-      final layout = _currentLayout;
-      if (layout != null && _playCanvasRows > 0 && _playCanvasCols > 0) {
-        _rebuildPlayPieces(
-          layout,
-          canvasRows: _playCanvasRows,
-          canvasCols: _playCanvasCols,
-        );
-      }
-    });
-
-    _scheduleCompletionScanOnInit();
-
-    debugPrint(
-      '[PuzzleScreen] Shuffled to layout ${_currentLayoutIndex + 1} / ${_layouts.length}',
-    );
-  }
-
   void _undoLastMove() {
     if (!_moveHistory.canUndo || _puzzleCompletionHandled) {
       return;
@@ -359,6 +313,10 @@ class _PuzzleScreenState extends State<PuzzleScreen> with WidgetsBindingObserver
     });
     _applyingUndo = false;
     _lastEvaluatedPiecesSnapshot = null;
+  }
+
+  void _openHowToPlay() {
+    showHowToPlayPopup(context);
   }
 
   void _useHint() {
@@ -528,7 +486,6 @@ class _PuzzleScreenState extends State<PuzzleScreen> with WidgetsBindingObserver
     }
 
     if (nextPuzzleId == null) {
-      await _audioController.leavePuzzleSession();
       if (!mounted) {
         return;
       }
@@ -559,13 +516,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> with WidgetsBindingObserver
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) {
-          _audioController.leavePuzzleSession();
-        }
-      },
-      child: Scaffold(
+    return Scaffold(
         backgroundColor: Colors.transparent,
         body: Stack(
           fit: StackFit.expand,
@@ -576,8 +527,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> with WidgetsBindingObserver
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildBody(BuildContext context) {
@@ -623,8 +573,8 @@ class _PuzzleScreenState extends State<PuzzleScreen> with WidgetsBindingObserver
               title: puzzle.category,
               coinBalance: CoinService.instance.coinBalance,
               onBack: _leavePuzzle,
+              onHowToPlay: _openHowToPlay,
             ),
-            PuzzleHintTooltipRow(onHintPressed: _useHint),
             Expanded(
               child: PuzzleBoardContainer(
                 child: LayoutBuilder(
@@ -670,9 +620,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> with WidgetsBindingObserver
             PuzzleBottomActionBar(
               onUndo: _undoLastMove,
               onHint: _useHint,
-              onShuffle: _shuffleLayout,
               undoEnabled: _moveHistory.canUndo && !_puzzleCompletionHandled,
-              shuffleEnabled: _layouts.length > 1 && !_puzzleCompletionHandled,
               hintEnabled: !_puzzleCompletionHandled,
             ),
           ],

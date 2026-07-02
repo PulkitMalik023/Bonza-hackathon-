@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/audio/ui_button_sound.dart';
 import '../../../../core/constants/home_assets.dart';
-import '../../../../core/constants/puzzle_ui_flags.dart';
 import '../../../../core/theme/puzzle_theme.dart';
 import '../../../../core/widgets/asset_icon.dart';
 import '../../../puzzle/presentation/widgets/puzzle_coin_pill.dart';
@@ -11,12 +11,10 @@ class HomeHeader extends StatelessWidget {
     super.key,
     required this.coinBalance,
     this.onSettingsPressed,
-    this.onAddCoins,
   });
 
   final int coinBalance;
   final VoidCallback? onSettingsPressed;
-  final VoidCallback? onAddCoins;
 
   @override
   Widget build(BuildContext context) {
@@ -54,11 +52,7 @@ class HomeHeader extends StatelessWidget {
                   ],
                 ),
               ),
-              PuzzleCoinPill(
-                coinBalance: coinBalance,
-                onAddPressed: onAddCoins,
-                showAddBadge: kShowCoinAddBadge,
-              ),
+              PuzzleCoinPill(coinBalance: coinBalance),
             ],
           ),
         ),
@@ -79,7 +73,7 @@ class _SettingsButton extends StatelessWidget {
       shape: const CircleBorder(),
       elevation: 3,
       child: InkWell(
-        onTap: onPressed,
+        onTap: withButtonTap(onPressed),
         customBorder: const CircleBorder(),
         child: SizedBox(
           width: 40,

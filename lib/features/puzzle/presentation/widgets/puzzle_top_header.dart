@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/audio/ui_button_sound.dart';
 import '../../../../core/constants/puzzle_assets.dart';
-import '../../../../core/constants/puzzle_ui_flags.dart';
 import '../../../../core/theme/puzzle_theme.dart';
 import '../../../../core/widgets/asset_icon.dart';
+import '../how_to_play/how_to_play_button.dart';
 import 'puzzle_coin_pill.dart';
 
 class PuzzleTopHeader extends StatelessWidget {
@@ -12,13 +13,13 @@ class PuzzleTopHeader extends StatelessWidget {
     required this.title,
     required this.coinBalance,
     required this.onBack,
-    this.onAddCoins,
+    this.onHowToPlay,
   });
 
   final String title;
   final int coinBalance;
   final VoidCallback onBack;
-  final VoidCallback? onAddCoins;
+  final VoidCallback? onHowToPlay;
 
   @override
   Widget build(BuildContext context) {
@@ -56,11 +57,11 @@ class PuzzleTopHeader extends StatelessWidget {
                   ],
                 ),
               ),
-              PuzzleCoinPill(
-                coinBalance: coinBalance,
-                onAddPressed: onAddCoins,
-                showAddBadge: kShowCoinAddBadge,
-              ),
+              if (onHowToPlay != null) ...[
+                const SizedBox(width: 6),
+                HowToPlayButton(onPressed: onHowToPlay!),
+              ],
+              PuzzleCoinPill(coinBalance: coinBalance),
             ],
           ),
         ),
@@ -81,7 +82,7 @@ class _BackButton extends StatelessWidget {
       shape: const CircleBorder(),
       elevation: 3,
       child: InkWell(
-        onTap: onPressed,
+        onTap: withButtonTap(onPressed),
         customBorder: const CircleBorder(),
         child: SizedBox(
           width: 40,

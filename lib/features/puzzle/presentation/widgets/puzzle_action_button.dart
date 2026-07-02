@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/audio/ui_button_sound.dart';
 import '../../../../core/theme/puzzle_theme.dart';
 import '../../../../core/widgets/asset_icon.dart';
 
@@ -36,7 +37,7 @@ class PuzzleActionButton extends StatelessWidget {
               shape: const CircleBorder(),
               elevation: enabled ? 4 : 0,
               child: InkWell(
-                onTap: onPressed,
+                onTap: withButtonTap(onPressed),
                 customBorder: const CircleBorder(),
                 child: SizedBox(
                   width: PuzzleTheme.actionButtonSize,

@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/audio/audio_settings_service.dart';
+import '../../../../core/audio/puzzle_audio_controller.dart';
 import '../../../../core/economy/coin_service.dart';
 import '../../../puzzle/data/models/puzzle_content.dart';
 import '../../../puzzle/data/repositories/puzzle_repository.dart';
 import '../../../puzzle/presentation/puzzle_screen.dart';
 import '../../../puzzle/presentation/widgets/puzzle_nature_background.dart';
-import '../widgets/home_bottom_nav_bar.dart';
 import '../widgets/home_header.dart';
 import '../widgets/home_level_card.dart';
 import '../widgets/home_section_title.dart';
+import '../widgets/home_settings_sheet.dart';
 
 class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});
@@ -17,16 +19,46 @@ class LandingScreen extends StatefulWidget {
   State<LandingScreen> createState() => _LandingScreenState();
 }
 
-class _LandingScreenState extends State<LandingScreen> {
+class _LandingScreenState extends State<LandingScreen>
+    with WidgetsBindingObserver {
   List<PuzzleContent>? _puzzles;
   String? _errorMessage;
   bool _isLoading = true;
 
+  PuzzleAudioController get _audioController => PuzzleAudioController.instance;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     CoinService.instance.load();
+    _bootstrapAudio();
     _loadPuzzles();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+        _audioController.pausePuzzleLoopSound();
+      case AppLifecycleState.resumed:
+        _audioController.resumePuzzleLoopSound();
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.hidden:
+        break;
+    }
+  }
+
+  Future<void> _bootstrapAudio() async {
+    await AudioSettingsService.instance.load();
+    await _audioController.ensurePuzzleLoopPlaying();
   }
 
   Future<void> _loadPuzzles() async {
@@ -75,25 +107,6 @@ class _LandingScreenState extends State<LandingScreen> {
     );
   }
 
-  void _showPlaceholder(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  }
-
-  void _onNavTabSelected(HomeNavTab tab) {
-    switch (tab) {
-      case HomeNavTab.home:
-        break;
-      case HomeNavTab.daily:
-        _showPlaceholder('Daily challenges coming soon');
-      case HomeNavTab.rewards:
-        _showPlaceholder('Rewards coming soon');
-      case HomeNavTab.shop:
-        _showPlaceholder('Shop coming soon');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -111,18 +124,12 @@ class _LandingScreenState extends State<LandingScreen> {
                   builder: (context, _) {
                     return HomeHeader(
                       coinBalance: CoinService.instance.coinBalance,
-                      onSettingsPressed: () {
-                        _showPlaceholder('Settings coming soon');
-                      },
-                      onAddCoins: () {
-                        _showPlaceholder('Coin shop coming soon');
-                      },
+                      onSettingsPressed: () => showHomeSettingsSheet(context),
                     );
                   },
                 ),
                 const HomeSectionTitle(),
                 Expanded(child: _buildBody(context)),
-                HomeBottomNavBar(onTabSelected: _onNavTabSelected),
               ],
             ),
           ),
@@ -170,7 +177,7 @@ class _LandingScreenState extends State<LandingScreen> {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       itemCount: puzzles.length,
       itemBuilder: (context, index) {
         final puzzle = puzzles[index];

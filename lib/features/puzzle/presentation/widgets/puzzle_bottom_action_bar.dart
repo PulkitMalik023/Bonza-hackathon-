@@ -10,17 +10,13 @@ class PuzzleBottomActionBar extends StatelessWidget {
     super.key,
     required this.onUndo,
     required this.onHint,
-    required this.onShuffle,
     this.undoEnabled = true,
-    this.shuffleEnabled = true,
     this.hintEnabled = true,
   });
 
   final VoidCallback onUndo;
   final VoidCallback onHint;
-  final VoidCallback onShuffle;
   final bool undoEnabled;
-  final bool shuffleEnabled;
   final bool hintEnabled;
 
   @override
@@ -42,12 +38,6 @@ class PuzzleBottomActionBar extends StatelessWidget {
             fallbackIcon: Icons.auto_fix_high_rounded,
             onPressed: hintEnabled ? onHint : null,
             showBadge: kShowHintBadge,
-          ),
-          PuzzleActionButton(
-            label: 'SHUFFLE',
-            assetPath: PuzzleAssets.shuffle,
-            fallbackIcon: Icons.shuffle_rounded,
-            onPressed: shuffleEnabled ? onShuffle : null,
           ),
         ],
       ),

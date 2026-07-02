@@ -1,6 +1,3 @@
-/// Shows decorative badge on coin add button until purchase flow exists.
-const bool kShowCoinAddBadge = true;
-
 /// Shows decorative badge on bottom hint button.
 const bool kShowHintBadge = true;
 
