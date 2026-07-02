@@ -22,7 +22,6 @@ class HomeScreen extends StatelessWidget {
               GridNodesLayer(
                 tileSize: AppTheme.gridTileSize,
                 boardSize: boardSize,
-                nodeCount: 10,
               ),
             ],
           );
