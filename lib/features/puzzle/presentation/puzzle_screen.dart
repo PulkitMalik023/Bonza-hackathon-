@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../shared/widgets/grid_background.dart';
 import '../../../core/theme/app_theme.dart';
 import '../data/generators/puzzle_layout_generator.dart';
 import '../data/models/generated_puzzle_layout.dart';
@@ -30,6 +31,8 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   }
 
   Future<void> _loadAndGenerate() async {
+    debugPrint('[PuzzleScreen] Rendering puzzleIndex: ${widget.puzzleIndex}');
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -88,11 +91,20 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     final layout = _layout;
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Text(layout?.category ?? 'Puzzle ${widget.puzzleIndex + 1}'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
-      body: SafeArea(
-        child: _buildBody(context),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          const GridBackground(),
+          SafeArea(
+            child: _buildBody(context),
+          ),
+        ],
       ),
     );
   }
@@ -126,10 +138,13 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
           child: Text(
             layout.category,
-            style: Theme.of(context).textTheme.headlineSmall,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontWeight: FontWeight.bold,
+                ),
             textAlign: TextAlign.center,
           ),
         ),

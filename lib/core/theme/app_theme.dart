@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 
 abstract final class AppTheme {
   static const double gridTileSize = 48;
+  static const double gridBackgroundSpacing = 64;
+
+  static const Color gridBackgroundColor = Color(0xFFFAFAFA);
+  static const Color gridBackgroundLineColor = Color(0xFFE0E0E0);
 
   static const Color gridTopGradient = Color(0xFFF7F7F9);
   static const Color gridBottomGradient = Color(0xFFF2C4D3);
