@@ -1,31 +1,60 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_theme.dart';
-import '../../../core/widgets/animated_grid_background/animated_grid_background.dart';
-import '../../puzzle/presentation/widgets/grid_nodes_layer.dart';
+import '../../puzzle/presentation/puzzle_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
+  static const _puzzleCount = 5;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final boardSize = Size(constraints.maxWidth, constraints.maxHeight);
-
-          return Stack(
-            fit: StackFit.expand,
+      appBar: AppBar(
+        title: const Text('Jam Pro'),
+        centerTitle: true,
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              AnimatedGridBackground(tileSize: AppTheme.gridTileSize),
-              GridNodesLayer(
-                tileSize: AppTheme.gridTileSize,
-                boardSize: boardSize,
+              Text(
+                'Choose a puzzle',
+                style: Theme.of(context).textTheme.headlineSmall,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              Expanded(
+                child: ListView.separated(
+                  itemCount: _puzzleCount,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final puzzleNumber = index + 1;
+
+                    return FilledButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => PuzzleScreen(puzzleIndex: index),
+                          ),
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Text(
+                          '$puzzleNumber',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
             ],
-          );
-        },
+          ),
+        ),
       ),
     );
   }
