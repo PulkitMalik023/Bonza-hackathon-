@@ -49,6 +49,22 @@ void main() {
     expect(context.android.usageType, AndroidUsageType.media);
   });
 
+  test('loop audio context requests focus for background music', () {
+    final context = PuzzleAudioController.loopAudioContext;
+
+    expect(context.android.audioFocus, AndroidAudioFocus.gain);
+    expect(context.android.usageType, AndroidUsageType.game);
+    expect(context.android.contentType, AndroidContentType.music);
+  });
+
+  test('sfx audio context uses game sonification without focus', () {
+    final context = PuzzleAudioController.sfxAudioContext;
+
+    expect(context.android.audioFocus, AndroidAudioFocus.none);
+    expect(context.android.usageType, AndroidUsageType.game);
+    expect(context.android.contentType, AndroidContentType.sonification);
+  });
+
   test('configureGlobalAudio is idempotent', () async {
     await PuzzleAudioController.instance.configureGlobalAudio();
     await PuzzleAudioController.instance.configureGlobalAudio();

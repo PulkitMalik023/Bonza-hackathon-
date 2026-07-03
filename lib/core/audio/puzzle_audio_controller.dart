@@ -164,7 +164,11 @@ class PuzzleAudioController {
 
     try {
       await _loop.setPlayerMode(PlayerMode.mediaPlayer);
+      await _loop.setAudioContext(loopAudioContext);
+
       await _sfx.setPlayerMode(PlayerMode.lowLatency);
+      await _sfx.setAudioContext(sfxAudioContext);
+
       _configured = true;
     } catch (error, stackTrace) {
       debugPrint('[PuzzleAudioController] Player setup failed: $error');
@@ -261,6 +265,32 @@ class PuzzleAudioController {
   static AudioContext get gameAudioContext => AudioContextConfig(
         focus: AudioContextConfigFocus.mixWithOthers,
       ).build();
+
+  @visibleForTesting
+  static AudioContext get loopAudioContext => AudioContext(
+        android: const AudioContextAndroid(
+          contentType: AndroidContentType.music,
+          usageType: AndroidUsageType.game,
+          audioFocus: AndroidAudioFocus.gain,
+        ),
+        iOS: AudioContextIOS(
+          category: AVAudioSessionCategory.playback,
+          options: {AVAudioSessionOptions.mixWithOthers},
+        ),
+      );
+
+  @visibleForTesting
+  static AudioContext get sfxAudioContext => AudioContext(
+        android: const AudioContextAndroid(
+          contentType: AndroidContentType.sonification,
+          usageType: AndroidUsageType.game,
+          audioFocus: AndroidAudioFocus.none,
+        ),
+        iOS: AudioContextIOS(
+          category: AVAudioSessionCategory.playback,
+          options: {AVAudioSessionOptions.mixWithOthers},
+        ),
+      );
 
   @visibleForTesting
   static void resetGlobalAudioForTest() {
