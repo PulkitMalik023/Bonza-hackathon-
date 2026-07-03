@@ -7,6 +7,11 @@ abstract final class PuzzleTheme {
   static const Color yellow = Color(0xFFFFD54F);
   static const Color boardBg = Color(0xFFF4FAF3);
   static const Color tileBg = Color(0xFF1A1A1A);
+  static const Color tileFaceTop = Color(0xFF1A1A1A);
+  static const Color tileFaceBottom = Color(0xFF0D0D0D);
+  static const Color tileBaseGreen = Color(0xFF5AD66A);
+  static const Color tileBaseGreenMuted = Color(0xFF4CB85C);
+  static const Color tileSheenColor = Color(0x33FFFFFF);
   static const Color tileText = Colors.white;
   static const Color headerTitle = Color(0xFFFFD54F);
   static const Color coinText = Colors.white;
@@ -17,7 +22,9 @@ abstract final class PuzzleTheme {
 
   static const double headerRadius = 16;
   static const double boardRadius = 0;
-  static const double tileRadius = 0;
+  static const double tileRadius = 6;
+  static const double tileBaseDepth = 4;
+  static const double tileBaseInset = 1;
   static const double actionButtonSize = 56;
   static const double levelCardRadius = 16;
   static const double bottomNavHeight = 72;
@@ -71,19 +78,53 @@ abstract final class PuzzleTheme {
 
   static List<BoxShadow> get tileRestShadow => const [
         BoxShadow(
-          color: Color(0x33000000),
-          blurRadius: 4,
-          offset: Offset(0, 2),
+          color: Color(0x40000000),
+          blurRadius: 8,
+          offset: Offset(0, 4),
+        ),
+        BoxShadow(
+          color: Color(0x265AD66A),
+          blurRadius: 6,
+          offset: Offset(0, 3),
         ),
       ];
 
   static List<BoxShadow> get tileDragShadow => const [
         BoxShadow(
           color: Color(0x66000000),
-          blurRadius: 12,
-          offset: Offset(0, 6),
+          blurRadius: 14,
+          offset: Offset(0, 8),
+        ),
+        BoxShadow(
+          color: Color(0x405AD66A),
+          blurRadius: 10,
+          offset: Offset(0, 5),
         ),
       ];
+
+  static double tileRadiusFor(double tileSize) =>
+      (tileSize * 0.12).clamp(4.0, 10.0);
+
+  static double tileBaseDepthFor(double tileSize) =>
+      (tileSize * 0.08).clamp(3.0, 5.0);
+
+  static double tileBaseInsetFor(double tileSize) =>
+      (tileSize * 0.02).clamp(0.5, 2.0);
+
+  static double tileLipWidthFor(double tileSize) =>
+      (tileSize * 0.06).clamp(2.0, 4.0);
+
+  static LinearGradient tileFaceGradient({bool muted = false}) {
+    final top = muted ? tileFaceTop.withValues(alpha: 0.92) : tileFaceTop;
+    final bottom =
+        muted ? tileFaceBottom.withValues(alpha: 0.92) : tileFaceBottom;
+
+    return LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [top, bottom],
+    );
+  }
 
   static List<BoxShadow> get levelCardShadow => const [
         BoxShadow(

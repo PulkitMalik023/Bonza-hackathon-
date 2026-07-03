@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/puzzle_theme.dart';
 import '../../domain/puzzle_piece.dart';
 import 'puzzle_node_tile.dart';
+import 'puzzle_tile_edge_mask.dart';
 
 enum PuzzlePieceVisualMode { real, ghost }
 
@@ -30,10 +32,16 @@ class PuzzlePieceContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isGhost = visualMode == PuzzlePieceVisualMode.ghost;
+    final occupiedOffsets = occupiedOffsetsFromCells(
+      cells: piece.cells.map(
+        (cell) => (rowOffset: cell.rowOffset, colOffset: cell.colOffset),
+      ),
+    );
+    final baseDepth = PuzzleTheme.tileBaseDepthFor(tileSize);
 
     return SizedBox(
       width: pieceWidth,
-      height: pieceHeight,
+      height: pieceHeight + baseDepth,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -49,6 +57,11 @@ class PuzzlePieceContent extends StatelessWidget {
                 isCompleted: isCompleted && !isGhost,
                 isHintHighlighted: isHintHighlighted && !isGhost,
                 isGhost: isGhost,
+                edgeMask: edgeMaskForCell(
+                  rowOffset: cell.rowOffset,
+                  colOffset: cell.colOffset,
+                  occupiedOffsets: occupiedOffsets,
+                ),
               ),
             ),
         ],

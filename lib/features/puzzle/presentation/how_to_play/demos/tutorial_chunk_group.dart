@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../../core/theme/puzzle_theme.dart';
 import '../../widgets/puzzle_node_tile.dart';
+import '../../widgets/puzzle_tile_edge_mask.dart';
 
 class TutorialCell {
   const TutorialCell({
@@ -61,6 +62,9 @@ class TutorialChunkGroup extends StatelessWidget {
     final width = (bounds.maxCol + 1) * tileSize;
     final height = (bounds.maxRow + 1) * tileSize;
     final showGlow = glow || wordGlow;
+    final occupiedOffsets = {
+      for (final cell in cells) (cell.row, cell.col),
+    };
 
     Widget content = SizedBox(
       width: width,
@@ -73,8 +77,9 @@ class TutorialChunkGroup extends StatelessWidget {
               child: IgnorePointer(
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    borderRadius:
-                        BorderRadius.circular(PuzzleTheme.tileRadius + 2),
+                    borderRadius: BorderRadius.circular(
+                      PuzzleTheme.tileRadiusFor(tileSize) + 2,
+                    ),
                     border: Border.all(
                       color: PuzzleTheme.lightGreen.withValues(alpha: 0.85),
                       width: 2,
@@ -100,6 +105,11 @@ class TutorialChunkGroup extends StatelessWidget {
                 isDragging: isDragging,
                 isCompleted: isCompleted || showGlow,
                 showBorder: true,
+                edgeMask: edgeMaskForCell(
+                  rowOffset: cell.row,
+                  colOffset: cell.col,
+                  occupiedOffsets: occupiedOffsets,
+                ),
               ),
             ),
           if (showGlow && !wordGlow)
@@ -112,8 +122,9 @@ class TutorialChunkGroup extends StatelessWidget {
                     width: tileSize + 4,
                     height: tileSize + 4,
                     decoration: BoxDecoration(
-                      borderRadius:
-                          BorderRadius.circular(PuzzleTheme.tileRadius + 2),
+                      borderRadius: BorderRadius.circular(
+                        PuzzleTheme.tileRadiusFor(tileSize) + 2,
+                      ),
                       border: Border.all(
                         color: PuzzleTheme.lightGreen.withValues(alpha: 0.85),
                         width: 2,
