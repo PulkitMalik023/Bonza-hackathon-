@@ -6,6 +6,7 @@ enum PuzzleTileVisualState {
   normal,
   dragging,
   completed,
+  hintHighlighted,
 }
 
 class PuzzleNodeTile extends StatelessWidget {
@@ -16,6 +17,7 @@ class PuzzleNodeTile extends StatelessWidget {
     this.isDragging = false,
     this.showBorder = true,
     this.isCompleted = false,
+    this.isHintHighlighted = false,
   });
 
   final String character;
@@ -23,6 +25,7 @@ class PuzzleNodeTile extends StatelessWidget {
   final bool isDragging;
   final bool showBorder;
   final bool isCompleted;
+  final bool isHintHighlighted;
 
   PuzzleTileVisualState get visualState {
     if (isDragging) {
@@ -30,6 +33,9 @@ class PuzzleNodeTile extends StatelessWidget {
     }
     if (isCompleted) {
       return PuzzleTileVisualState.completed;
+    }
+    if (isHintHighlighted) {
+      return PuzzleTileVisualState.hintHighlighted;
     }
     return PuzzleTileVisualState.normal;
   }
@@ -82,6 +88,8 @@ class PuzzleNodeTile extends StatelessWidget {
         return PuzzleTheme.tileBg;
       case PuzzleTileVisualState.completed:
         return PuzzleTheme.tileBg.withValues(alpha: 0.92);
+      case PuzzleTileVisualState.hintHighlighted:
+        return PuzzleTheme.yellow.withValues(alpha: 0.35);
     }
   }
 
@@ -93,6 +101,8 @@ class PuzzleNodeTile extends StatelessWidget {
         return const Color(0x66FFFFFF);
       case PuzzleTileVisualState.completed:
         return PuzzleTheme.lightGreen.withValues(alpha: 0.6);
+      case PuzzleTileVisualState.hintHighlighted:
+        return PuzzleTheme.yellow;
     }
   }
 
@@ -103,6 +113,14 @@ class PuzzleNodeTile extends StatelessWidget {
         return PuzzleTheme.tileRestShadow;
       case PuzzleTileVisualState.dragging:
         return PuzzleTheme.tileDragShadow;
+      case PuzzleTileVisualState.hintHighlighted:
+        return [
+          BoxShadow(
+            color: PuzzleTheme.yellow.withValues(alpha: 0.55),
+            blurRadius: 10,
+            spreadRadius: 1,
+          ),
+        ];
     }
   }
 }

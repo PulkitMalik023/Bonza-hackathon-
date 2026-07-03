@@ -4,22 +4,22 @@ import '../../../../core/audio/ui_button_sound.dart';
 import '../../../../core/constants/puzzle_assets.dart';
 import '../../../../core/theme/puzzle_theme.dart';
 import '../../../../core/widgets/asset_icon.dart';
+import '../../../../core/widgets/settings_icon_button.dart';
 import '../how_to_play/how_to_play_button.dart';
-import 'puzzle_coin_pill.dart';
 
 class PuzzleTopHeader extends StatelessWidget {
   const PuzzleTopHeader({
     super.key,
     required this.title,
-    required this.coinBalance,
     required this.onBack,
     this.onHowToPlay,
+    this.onSettingsPressed,
   });
 
   final String title;
-  final int coinBalance;
   final VoidCallback onBack;
   final VoidCallback? onHowToPlay;
+  final VoidCallback? onSettingsPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -60,8 +60,9 @@ class PuzzleTopHeader extends StatelessWidget {
               if (onHowToPlay != null) ...[
                 const SizedBox(width: 6),
                 HowToPlayButton(onPressed: onHowToPlay!),
+                const SizedBox(width: 10),
               ],
-              PuzzleCoinPill(coinBalance: coinBalance),
+              SettingsIconButton(onPressed: onSettingsPressed),
             ],
           ),
         ),

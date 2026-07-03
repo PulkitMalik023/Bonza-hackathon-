@@ -21,15 +21,18 @@ class ChunkTrayLayoutResult {
     required this.canvasRows,
     required this.canvasCols,
     required this.anchors,
+    this.fitsInBoard = true,
   });
 
   final int canvasRows;
   final int canvasCols;
   final List<ChunkTrayAnchor> anchors;
+  final bool fitsInBoard;
 }
 
 class ChunkTrayLayoutService {
-  static const _boardTrayGapRows = 1;
+  static const _colGap = 1;
+  static const _rowGap = 1;
 
   ChunkTrayLayoutResult compute({
     required int boardRows,
@@ -47,7 +50,6 @@ class ChunkTrayLayoutService {
     }
 
     ChunkTrayLayoutResult? bestResult;
-    var bestCanvasArea = double.infinity;
 
     for (var chunksPerRow = 3; chunksPerRow >= 1; chunksPerRow--) {
       for (var rowGap = 2; rowGap >= 1; rowGap--) {
@@ -59,14 +61,12 @@ class ChunkTrayLayoutService {
           rowGap: rowGap,
         );
 
-        if (viewportSize == null) {
-          return result;
+        if (!result.fitsInBoard) {
+          continue;
         }
 
-        final canvasArea = result.canvasRows * result.canvasCols;
-        if (canvasArea < bestCanvasArea) {
-          bestCanvasArea = canvasArea.toDouble();
-          bestResult = result;
+        if (viewportSize == null) {
+          return result;
         }
 
         if (_fitsViewport(
@@ -77,10 +77,18 @@ class ChunkTrayLayoutService {
         )) {
           return result;
         }
+
+        bestResult ??= result;
       }
     }
 
-    return bestResult!;
+    return bestResult ??
+        ChunkTrayLayoutResult(
+          canvasRows: boardRows,
+          canvasCols: boardCols,
+          anchors: const [],
+          fitsInBoard: false,
+        );
   }
 
   ChunkTrayLayoutResult _computeWithLayout({
@@ -90,63 +98,103 @@ class ChunkTrayLayoutService {
     required int chunksPerRow,
     required int rowGap,
   }) {
-    final anchors = <ChunkTrayAnchor>[];
-    var trayRowWidth = 0;
-    var maxChunkHeight = 1;
+    final logicalRows = _buildLogicalRows(
+      chunks: chunks,
+      boardCols: boardCols,
+      chunksPerRow: chunksPerRow,
+    );
 
-    for (var index = 0; index < chunks.length; index++) {
-      final chunk = chunks[index];
-      maxChunkHeight = max(maxChunkHeight, chunk.height);
+    final anchors = List<ChunkTrayAnchor>.filled(
+      chunks.length,
+      const ChunkTrayAnchor(row: 0, col: 0),
+    );
 
-      final slotInRow = index % chunksPerRow;
-      if (slotInRow == 0) {
-        trayRowWidth = 0;
+    var rowCursor = boardRows;
+
+    for (final rowIndices in logicalRows) {
+      var maxHeight = 1;
+      var rowWidth = 0;
+
+      for (final index in rowIndices) {
+        final chunk = chunks[index];
+        maxHeight = max(maxHeight, chunk.height);
+        rowWidth += chunk.width + (rowWidth > 0 ? _colGap : 0);
       }
 
-      anchors.add(
-        ChunkTrayAnchor(
-          row: boardRows + _boardTrayGapRows + (index ~/ chunksPerRow) * rowGap,
-          col: trayRowWidth,
-        ),
-      );
-
-      trayRowWidth += chunk.width + 1;
-    }
-
-    final lastTrayRowIndex = (chunks.length - 1) ~/ chunksPerRow;
-    var maxTrayRowWidth = 0;
-    trayRowWidth = 0;
-    for (var index = 0; index < chunks.length; index++) {
-      final chunk = chunks[index];
-      final slotInRow = index % chunksPerRow;
-
-      if (slotInRow == 0) {
-        maxTrayRowWidth = max(maxTrayRowWidth, trayRowWidth);
-        trayRowWidth = 0;
+      if (rowWidth > boardCols) {
+        return ChunkTrayLayoutResult(
+          canvasRows: boardRows,
+          canvasCols: boardCols,
+          anchors: anchors,
+          fitsInBoard: false,
+        );
       }
 
-      trayRowWidth += chunk.width + 1;
-    }
-    maxTrayRowWidth = max(maxTrayRowWidth, trayRowWidth);
+      rowCursor -= maxHeight;
+      if (rowCursor < 0) {
+        return ChunkTrayLayoutResult(
+          canvasRows: boardRows,
+          canvasCols: boardCols,
+          anchors: anchors,
+          fitsInBoard: false,
+        );
+      }
 
-    final canvasCols = max(boardCols, maxTrayRowWidth);
-    final canvasRows = boardRows +
-        _boardTrayGapRows +
-        lastTrayRowIndex * rowGap +
-        maxChunkHeight;
+      var colCursor = 0;
+      for (final index in rowIndices) {
+        final chunk = chunks[index];
+        anchors[index] = ChunkTrayAnchor(row: rowCursor, col: colCursor);
+        colCursor += chunk.width + _colGap;
+      }
+
+      rowCursor -= rowGap;
+    }
 
     _assertWithinCanvas(
       chunks: chunks,
       anchors: anchors,
-      canvasRows: canvasRows,
-      canvasCols: canvasCols,
+      canvasRows: boardRows,
+      canvasCols: boardCols,
     );
 
     return ChunkTrayLayoutResult(
-      canvasRows: canvasRows,
-      canvasCols: canvasCols,
+      canvasRows: boardRows,
+      canvasCols: boardCols,
       anchors: anchors,
     );
+  }
+
+  List<List<int>> _buildLogicalRows({
+    required List<PuzzleChunk> chunks,
+    required int boardCols,
+    required int chunksPerRow,
+  }) {
+    final logicalRows = <List<int>>[];
+    var currentRow = <int>[];
+    var currentWidth = 0;
+
+    for (var index = 0; index < chunks.length; index++) {
+      final chunk = chunks[index];
+      final chunkWidth = chunk.width;
+      final needsNewRow = currentRow.isNotEmpty &&
+          (currentRow.length >= chunksPerRow ||
+              currentWidth + _colGap + chunkWidth > boardCols);
+
+      if (needsNewRow) {
+        logicalRows.add(currentRow);
+        currentRow = [];
+        currentWidth = 0;
+      }
+
+      currentRow.add(index);
+      currentWidth += chunkWidth + (currentWidth > 0 ? _colGap : 0);
+    }
+
+    if (currentRow.isNotEmpty) {
+      logicalRows.add(currentRow);
+    }
+
+    return logicalRows;
   }
 
   bool _fitsViewport({

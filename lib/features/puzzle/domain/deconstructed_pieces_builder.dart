@@ -2,6 +2,7 @@ import 'dart:math';
 
 import '../data/deconstructors/puzzle_deconstructor.dart';
 import '../data/models/puzzle_layout.dart';
+import '../presentation/puzzle_tray_layout.dart';
 import 'piece_spawn_layout.dart';
 import 'puzzle_piece.dart';
 
@@ -28,6 +29,24 @@ List<PuzzlePiece> buildDeconstructedPlayPieces({
     canvasCols: canvasCols,
     random: random,
   );
+
+  if (scatter.mode == ScatterPlacementMode.random) {
+    return applySpawnAnchors(pieces, scatter.anchors);
+  }
+
+  final trayLayout = ChunkTrayLayoutService().compute(
+    boardRows: canvasRows,
+    boardCols: canvasCols,
+    chunks: deconstructed.chunks,
+    tileSize: 1,
+  );
+
+  if (trayLayout.fitsInBoard && trayLayout.anchors.length == pieces.length) {
+    return ChunkTrayLayoutService().buildPieces(
+      chunks: deconstructed.chunks,
+      layout: trayLayout,
+    );
+  }
 
   return applySpawnAnchors(pieces, scatter.anchors);
 }

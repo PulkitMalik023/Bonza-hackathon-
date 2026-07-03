@@ -5,18 +5,68 @@ import '../../../../core/audio/audio_settings_service.dart';
 import '../../../../core/theme/puzzle_theme.dart';
 import '../../../puzzle/presentation/how_to_play/how_to_play_popup.dart';
 
-Future<void> showHomeSettingsSheet(BuildContext context) {
+Future<void> showSettingsSheet(
+  BuildContext context, {
+  bool showRestart = false,
+  VoidCallback? onRestart,
+}) {
   return showModalBottomSheet<void>(
     context: context,
     backgroundColor: Colors.transparent,
     builder: (context) {
-      return const HomeSettingsSheet();
+      return SettingsSheet(
+        showRestart: showRestart,
+        onRestart: onRestart,
+      );
     },
   );
 }
 
-class HomeSettingsSheet extends StatelessWidget {
-  const HomeSettingsSheet({super.key});
+Future<void> showHomeSettingsSheet(BuildContext context) {
+  return showSettingsSheet(context);
+}
+
+class SettingsSheet extends StatelessWidget {
+  const SettingsSheet({
+    super.key,
+    this.showRestart = false,
+    this.onRestart,
+  });
+
+  final bool showRestart;
+  final VoidCallback? onRestart;
+
+  Future<void> _confirmRestart(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Restart puzzle?'),
+          content: const Text(
+            'Start this puzzle over? Progress will be lost.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              style: TextButton.styleFrom(foregroundColor: PuzzleTheme.badgeRed),
+              child: const Text('Restart'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !context.mounted) {
+      return;
+    }
+
+    Navigator.of(context).pop();
+    onRestart?.call();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -86,6 +136,16 @@ class HomeSettingsSheet extends StatelessWidget {
                   showHowToPlayPopup(context);
                 },
               ),
+              if (showRestart) ...[
+                const SizedBox(height: 8),
+                _SettingsActionTile(
+                  label: 'Restart puzzle',
+                  icon: Icons.refresh_rounded,
+                  labelColor: PuzzleTheme.badgeRed,
+                  iconColor: PuzzleTheme.badgeRed,
+                  onTap: () => _confirmRestart(context),
+                ),
+              ],
             ],
           ),
         ),
@@ -123,7 +183,9 @@ class _SettingsToggleTile extends StatelessWidget {
             children: [
               Icon(
                 enabled ? enabledIcon : disabledIcon,
-                color: enabled ? PuzzleTheme.mediumGreen : PuzzleTheme.darkGreen.withValues(alpha: 0.45),
+                color: enabled
+                    ? PuzzleTheme.mediumGreen
+                    : PuzzleTheme.darkGreen.withValues(alpha: 0.45),
                 size: 24,
               ),
               const SizedBox(width: 12),
@@ -160,11 +222,15 @@ class _SettingsActionTile extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.onTap,
+    this.labelColor = PuzzleTheme.darkGreen,
+    this.iconColor = PuzzleTheme.mediumGreen,
   });
 
   final String label;
   final IconData icon;
   final VoidCallback onTap;
+  final Color labelColor;
+  final Color iconColor;
 
   @override
   Widget build(BuildContext context) {
@@ -180,15 +246,15 @@ class _SettingsActionTile extends StatelessWidget {
             children: [
               Icon(
                 icon,
-                color: PuzzleTheme.mediumGreen,
+                color: iconColor,
                 size: 24,
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   label,
-                  style: const TextStyle(
-                    color: PuzzleTheme.darkGreen,
+                  style: TextStyle(
+                    color: labelColor,
                     fontWeight: FontWeight.w700,
                     fontSize: 15,
                   ),
@@ -205,3 +271,6 @@ class _SettingsActionTile extends StatelessWidget {
     );
   }
 }
+
+// Keep HomeSettingsSheet as an alias for existing imports.
+typedef HomeSettingsSheet = SettingsSheet;

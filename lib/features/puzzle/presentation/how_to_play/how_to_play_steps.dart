@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
+import 'demos/between_solved_words_demo.dart';
 import 'demos/connect_tiles_demo.dart';
 import 'demos/hint_demo.dart';
-import 'demos/make_word_demo.dart';
-import 'demos/solved_word_demo.dart';
+import 'demos/make_vertical_word_demo.dart';
 
 class HowToPlayStep {
   const HowToPlayStep({
@@ -28,17 +28,18 @@ const howToPlaySteps = <HowToPlayStep>[
     title: 'Make complete words',
     description:
         'Connect letters so they form a full target word horizontally or vertically.',
-    demoBuilder: MakeWordDemo.new,
+    demoBuilder: MakeVerticalWordDemo.new,
   ),
   HowToPlayStep(
-    title: 'Solved words move together',
+    title: 'Connect through shared letters',
     description:
-        'When a valid word is formed, all tiles contributing to it are solved together as one group.',
-    demoBuilder: SolvedWordDemo.new,
+        'Solved words can share letters. Drag ES to form TEST vertically between EAST and SOUTH.',
+    demoBuilder: BetweenSolvedWordsDemo.new,
   ),
   HowToPlayStep(
     title: 'Use hints if stuck',
-    description: "Tap Hint to reveal a helpful move when you're stuck.",
+    description:
+        'Tap Hint for a helpful move, or Full Grid to see the solved puzzle reference.',
     demoBuilder: HintDemo.new,
   ),
 ];

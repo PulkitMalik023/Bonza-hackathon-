@@ -96,7 +96,6 @@ class _HintDemoState extends State<HintDemo> with SingleTickerProviderStateMixin
         );
 
         return TutorialDemoScaffold(
-          height: 165,
           child: Stack(
             clipBehavior: Clip.hardEdge,
             children: [

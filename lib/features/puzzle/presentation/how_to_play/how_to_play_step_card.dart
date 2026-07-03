@@ -18,8 +18,10 @@ class HowToPlayStepCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        step.demoBuilder(isActive: isActive),
-        const SizedBox(height: 12),
+        Expanded(
+          child: step.demoBuilder(isActive: isActive),
+        ),
+        const SizedBox(height: 10),
         Text(
           step.title,
           textAlign: TextAlign.center,
@@ -30,7 +32,7 @@ class HowToPlayStepCard extends StatelessWidget {
             letterSpacing: 0.3,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Text(
           step.description,
           textAlign: TextAlign.center,

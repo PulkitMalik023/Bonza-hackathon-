@@ -58,4 +58,79 @@ void main() {
     expect(board[const BoardCellPosition(row: 2, col: 0)], 'R');
     expect(board[const BoardCellPosition(row: 2, col: 2)], 'D');
   });
+
+  test('strip removes cells from existing completed group', () {
+    final southGroup = PuzzlePiece.completedClusterGroup(
+      clusterKey: 'south_group',
+      anchorRow: 1,
+      anchorCol: 6,
+      cells: const [
+        PieceCell(letter: 'S', rowOffset: 0, colOffset: 0),
+        PieceCell(letter: 'O', rowOffset: 1, colOffset: 0),
+        PieceCell(letter: 'U', rowOffset: 2, colOffset: 0),
+        PieceCell(letter: 'T', rowOffset: 3, colOffset: 0),
+        PieceCell(letter: 'H', rowOffset: 4, colOffset: 0),
+      ],
+      completedAnswers: {'SOUTH'},
+    );
+
+    final northCluster = CompletedCluster(
+      answers: {'NORTH'},
+      cells: {
+        const BoardCellPosition(row: 5, col: 2): 'N',
+        const BoardCellPosition(row: 5, col: 3): 'O',
+        const BoardCellPosition(row: 5, col: 4): 'R',
+        const BoardCellPosition(row: 5, col: 5): 'T',
+        const BoardCellPosition(row: 5, col: 6): 'H',
+      },
+    );
+
+    final grouped = applyCompletedClusterGrouping(
+      pieces: [southGroup],
+      cluster: northCluster,
+    );
+
+    final completedGroups =
+        grouped.where((piece) => piece.isCompletedWordGroup).toList();
+    expect(completedGroups, hasLength(1));
+    expect(completedGroups.first.completedAnswers, containsAll(['SOUTH', 'NORTH']));
+    expect(completedGroups.first.cells, hasLength(9));
+  });
+
+  test('adjacent completed groups merge into one group', () {
+    final southGroup = PuzzlePiece.completedClusterGroup(
+      clusterKey: 'south_only',
+      anchorRow: 1,
+      anchorCol: 6,
+      cells: const [
+        PieceCell(letter: 'S', rowOffset: 0, colOffset: 0),
+        PieceCell(letter: 'O', rowOffset: 1, colOffset: 0),
+        PieceCell(letter: 'U', rowOffset: 2, colOffset: 0),
+        PieceCell(letter: 'T', rowOffset: 3, colOffset: 0),
+        PieceCell(letter: 'H', rowOffset: 4, colOffset: 0),
+      ],
+      completedAnswers: {'SOUTH'},
+    );
+
+    final northCluster = CompletedCluster(
+      answers: {'NORTH'},
+      cells: {
+        const BoardCellPosition(row: 5, col: 2): 'N',
+        const BoardCellPosition(row: 5, col: 3): 'O',
+        const BoardCellPosition(row: 5, col: 4): 'R',
+        const BoardCellPosition(row: 5, col: 5): 'T',
+        const BoardCellPosition(row: 5, col: 6): 'H',
+      },
+    );
+
+    final grouped = applyCompletedClusterGrouping(
+      pieces: [southGroup],
+      cluster: northCluster,
+    );
+
+    final completedGroups =
+        grouped.where((piece) => piece.isCompletedWordGroup).toList();
+    expect(completedGroups, hasLength(1));
+    expect(completedGroups.first.cells, hasLength(9));
+  });
 }

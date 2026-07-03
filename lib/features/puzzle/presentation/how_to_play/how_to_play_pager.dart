@@ -53,7 +53,7 @@ class _HowToPlayPagerState extends State<HowToPlayPager> {
       mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
-          height: 352,
+          height: 400,
           child: PageView.builder(
             controller: _pageController,
             itemCount: howToPlaySteps.length,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
+import 'grid_wave_pattern.dart';
 
 class AnimatedGridPainter extends CustomPainter {
   AnimatedGridPainter({
@@ -8,6 +9,7 @@ class AnimatedGridPainter extends CustomPainter {
     required this.topGradientColor,
     required this.bottomGradientColor,
     required this.waveProgress,
+    this.wavePattern = GridWavePattern.diagonalDownRight,
     this.tileLightColor = AppTheme.gridTileLight,
     this.tileDarkColor = AppTheme.gridTileDark,
     this.waveHighlightColor = AppTheme.gridWaveHighlight,
@@ -21,6 +23,7 @@ class AnimatedGridPainter extends CustomPainter {
   final Color topGradientColor;
   final Color bottomGradientColor;
   final double waveProgress;
+  final GridWavePattern wavePattern;
   final Color tileLightColor;
   final Color tileDarkColor;
   final Color waveHighlightColor;
@@ -35,8 +38,6 @@ class AnimatedGridPainter extends CustomPainter {
 
     final columns = (size.width / tileSize).ceil();
     final rows = (size.height / tileSize).ceil();
-    final maxDiagonal = rows + columns - 2;
-    final waveFront = waveProgress * maxDiagonal;
 
     for (var row = 0; row < rows; row++) {
       for (var col = 0; col < columns; col++) {
@@ -52,9 +53,15 @@ class AnimatedGridPainter extends CustomPainter {
         canvas.drawRect(rect, tilePaint);
 
         if (waveProgress > 0) {
-          final diagonalIndex = row + col;
-          final distance = (diagonalIndex - waveFront).abs();
-          final highlight = (1 - distance / waveSpread).clamp(0.0, 1.0);
+          final highlight = tileHighlight(
+            pattern: wavePattern,
+            row: row,
+            col: col,
+            rows: rows,
+            cols: columns,
+            waveProgress: waveProgress,
+            waveSpread: waveSpread,
+          );
 
           if (highlight > 0) {
             final wavePaint = Paint()
@@ -95,6 +102,7 @@ class AnimatedGridPainter extends CustomPainter {
         oldDelegate.topGradientColor != topGradientColor ||
         oldDelegate.bottomGradientColor != bottomGradientColor ||
         oldDelegate.waveProgress != waveProgress ||
+        oldDelegate.wavePattern != wavePattern ||
         oldDelegate.tileLightColor != tileLightColor ||
         oldDelegate.tileDarkColor != tileDarkColor ||
         oldDelegate.waveHighlightColor != waveHighlightColor ||

@@ -75,6 +75,7 @@ class _AnimatedGridBackgroundState extends State<AnimatedGridBackground>
             topGradientColor: widget.topGradientColor,
             bottomGradientColor: widget.bottomGradientColor,
             waveProgress: _waveController.waveProgress,
+            wavePattern: _waveController.currentPattern,
           ),
           size: Size(constraints.maxWidth, constraints.maxHeight),
           child: widget.child,

@@ -14,6 +14,25 @@ List<PuzzlePiece> applyCompletedClusterGrouping({
   final clusterPositions = cluster.cells.keys.toSet();
   final piecesBefore = pieces.length;
   final strippedPieceIds = <String>[];
+  final absorbedAnswers = {...cluster.answers};
+
+  for (final piece in pieces) {
+    if (!piece.isCompletedWordGroup) {
+      continue;
+    }
+
+    final donatesCells = piece.cells.any(
+      (cell) => clusterPositions.contains(
+        BoardCellPosition(
+          row: piece.anchorRow + cell.rowOffset,
+          col: piece.anchorCol + cell.colOffset,
+        ),
+      ),
+    );
+    if (donatesCells) {
+      absorbedAnswers.addAll(piece.completedAnswers);
+    }
+  }
 
   final stripped = _stripCellsFromPieces(
     pieces,
@@ -39,7 +58,7 @@ List<PuzzlePiece> applyCompletedClusterGrouping({
     anchorRow: minRow,
     anchorCol: minCol,
     cells: groupCells,
-    completedAnswers: cluster.answers,
+    completedAnswers: absorbedAnswers,
   );
 
   final existingGroupIds = stripped
@@ -47,7 +66,7 @@ List<PuzzlePiece> applyCompletedClusterGrouping({
       .map((piece) => piece.id)
       .toList();
 
-  final merged = _mergeOverlappingCompletedGroups([
+  final merged = _mergeConnectedCompletedGroups([
     ...stripped,
     groupPiece,
   ]);
@@ -67,7 +86,7 @@ List<PuzzlePiece> applyCompletedClusterGrouping({
 
   logClusterGrouped(
     clusterId: cluster.id,
-    answers: cluster.answers,
+    answers: absorbedAnswers,
     groupId: resultGroup.id,
     cellCount: resultGroup.cells.length,
     piecesBefore: piecesBefore,
@@ -87,11 +106,6 @@ List<PuzzlePiece> _stripCellsFromPieces(
   final result = <PuzzlePiece>[];
 
   for (final piece in pieces) {
-    if (piece.isCompletedWordGroup) {
-      result.add(piece);
-      continue;
-    }
-
     final remainingBoardCells = <BoardCellPosition, String>{};
     var removedCellCount = 0;
     for (final cell in piece.cells) {
@@ -123,13 +137,16 @@ List<PuzzlePiece> _stripCellsFromPieces(
       chunkId: piece.chunkId,
       spawnAnchorRow: piece.spawnAnchorRow,
       spawnAnchorCol: piece.spawnAnchorCol,
+      isCompletedWordGroup: piece.isCompletedWordGroup,
+      completedWordKey: piece.completedWordKey,
+      completedAnswers: piece.completedAnswers,
     ));
   }
 
   return result;
 }
 
-List<PuzzlePiece> _mergeOverlappingCompletedGroups(List<PuzzlePiece> pieces) {
+List<PuzzlePiece> _mergeConnectedCompletedGroups(List<PuzzlePiece> pieces) {
   final others = pieces.where((piece) => !piece.isCompletedWordGroup).toList();
   var groups = pieces.where((piece) => piece.isCompletedWordGroup).toList();
 
@@ -143,13 +160,17 @@ List<PuzzlePiece> _mergeOverlappingCompletedGroups(List<PuzzlePiece> pieces) {
 
     for (var index = 0; index < groups.length; index++) {
       for (var otherIndex = index + 1; otherIndex < groups.length; otherIndex++) {
-        if (!_piecesOverlap(groups[index], groups[otherIndex])) {
+        if (!_piecesConnected(groups[index], groups[otherIndex])) {
           continue;
         }
 
         final combinedCells = {
           ..._boardCellsFromPiece(groups[index]),
           ..._boardCellsFromPiece(groups[otherIndex]),
+        };
+        final combinedAnswers = {
+          ...groups[index].completedAnswers,
+          ...groups[otherIndex].completedAnswers,
         };
 
         groups[index] = _pieceFromBoardCells(
@@ -159,7 +180,8 @@ List<PuzzlePiece> _mergeOverlappingCompletedGroups(List<PuzzlePiece> pieces) {
           spawnAnchorRow: combinedCells.keys.map((cell) => cell.row).reduce(min),
           spawnAnchorCol: combinedCells.keys.map((cell) => cell.col).reduce(min),
           isCompletedWordGroup: true,
-          completedWordKey: groups[index].completedWordKey,
+          completedWordKey: clusterKeyFromCells(combinedCells),
+          completedAnswers: combinedAnswers,
         );
         groups.removeAt(otherIndex);
         changed = true;
@@ -175,10 +197,38 @@ List<PuzzlePiece> _mergeOverlappingCompletedGroups(List<PuzzlePiece> pieces) {
   return [...others, ...groups];
 }
 
+bool _piecesConnected(PuzzlePiece first, PuzzlePiece second) {
+  if (_piecesOverlap(first, second)) {
+    return true;
+  }
+
+  final firstCells = _boardCellsFromPiece(first);
+  final secondCellPositions = _boardCellsFromPiece(second).keys.toSet();
+
+  for (final position in firstCells.keys) {
+    for (final neighbor in _orthogonalNeighbors(position)) {
+      if (secondCellPositions.contains(neighbor)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 bool _piecesOverlap(PuzzlePiece first, PuzzlePiece second) {
   final firstCells = _boardCellsFromPiece(first);
   final secondCells = _boardCellsFromPiece(second);
   return firstCells.keys.any(secondCells.containsKey);
+}
+
+List<BoardCellPosition> _orthogonalNeighbors(BoardCellPosition cell) {
+  return [
+    BoardCellPosition(row: cell.row - 1, col: cell.col),
+    BoardCellPosition(row: cell.row + 1, col: cell.col),
+    BoardCellPosition(row: cell.row, col: cell.col - 1),
+    BoardCellPosition(row: cell.row, col: cell.col + 1),
+  ];
 }
 
 Map<BoardCellPosition, String> _boardCellsFromPiece(PuzzlePiece piece) {
@@ -200,6 +250,7 @@ PuzzlePiece _pieceFromBoardCells(
   required int spawnAnchorCol,
   bool isCompletedWordGroup = false,
   String? completedWordKey,
+  Set<String> completedAnswers = const {},
 }) {
   if (boardCells.isEmpty) {
     throw ArgumentError('Cannot build piece from empty board cells');
@@ -228,5 +279,6 @@ PuzzlePiece _pieceFromBoardCells(
     cells: cells,
     isCompletedWordGroup: isCompletedWordGroup,
     completedWordKey: completedWordKey,
+    completedAnswers: completedAnswers,
   );
 }

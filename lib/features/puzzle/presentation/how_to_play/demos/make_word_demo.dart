@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../../core/theme/puzzle_theme.dart';
 import 'tutorial_chunk_group.dart';
 import 'tutorial_demo_scaffold.dart';
 import 'tutorial_hand_pointer.dart';
@@ -133,43 +132,6 @@ class _MakeWordDemoState extends State<MakeWordDemo>
                   offset: _wordOrigin,
                   wordGlow: showWordFound,
                   isCompleted: showWordFound,
-                ),
-              if (showWordFound)
-                Positioned(
-                  top: 18,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: PuzzleTheme.lightGreen,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: PuzzleTheme.tileRestShadow,
-                      ),
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.check_circle_rounded,
-                              color: Colors.white,
-                              size: 16,
-                            ),
-                            SizedBox(width: 4),
-                            Text(
-                              'Word found!',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
                 ),
               if (handIn > 0 && !connected && highlight < 0.7)
                 TutorialHandPointer(

@@ -7,10 +7,12 @@ class PiecesChangeEvent {
   const PiecesChangeEvent({
     required this.pieces,
     required this.affectedCells,
+    this.movedPieceIds = const [],
   });
 
   final List<PuzzlePiece> pieces;
   final Set<BoardCellPosition> affectedCells;
+  final List<String> movedPieceIds;
 }
 
 bool isPieceAtSpawn(PuzzlePiece piece) {

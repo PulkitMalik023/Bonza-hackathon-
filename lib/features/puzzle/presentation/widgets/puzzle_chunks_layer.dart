@@ -31,6 +31,7 @@ class PuzzleChunksLayer extends StatefulWidget {
     this.interactionEnabled = true,
     this.onDragStart,
     this.onDragEnd,
+    this.hintHighlightedPieceIds = const {},
   });
 
   final int boardRows;
@@ -43,6 +44,7 @@ class PuzzleChunksLayer extends StatefulWidget {
   final bool interactionEnabled;
   final VoidCallback? onDragStart;
   final VoidCallback? onDragEnd;
+  final Set<String> hintHighlightedPieceIds;
 
   @override
   State<PuzzleChunksLayer> createState() => _PuzzleChunksLayerState();
@@ -143,8 +145,8 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer> {
   Offset _clampPieceAnchorTopLeft(PuzzlePiece piece, Offset topLeft) {
     final tileSize = widget.tileSize;
     final size = pieceGridSize(piece);
-    final maxX = (widget.canvasCols - size.width) * tileSize;
-    final maxY = (widget.canvasRows - size.height) * tileSize;
+    final maxX = (widget.boardCols - size.width) * tileSize;
+    final maxY = (widget.boardRows - size.height) * tileSize;
 
     return Offset(
       topLeft.dx.clamp(0.0, maxX),
@@ -152,11 +154,15 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer> {
     );
   }
 
-  void _notifyPiecesChanged({required Set<BoardCellPosition> affectedCells}) {
+  void _notifyPiecesChanged({
+    required Set<BoardCellPosition> affectedCells,
+    List<String> movedPieceIds = const [],
+  }) {
     widget.onPiecesChanged(
       PiecesChangeEvent(
         pieces: _clonePieces(_pieces),
         affectedCells: affectedCells,
+        movedPieceIds: movedPieceIds,
       ),
     );
   }
@@ -246,8 +252,6 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer> {
       boardRows: widget.boardRows,
       boardCols: widget.boardCols,
       tileSize: widget.tileSize,
-      canvasRows: widget.canvasRows,
-      canvasCols: widget.canvasCols,
     );
 
     _logDropResult(piece, result);
@@ -273,7 +277,10 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer> {
       previousAnchorCol: startCol,
     );
 
-    _notifyPiecesChanged(affectedCells: affectedCells);
+    _notifyPiecesChanged(
+      affectedCells: affectedCells,
+      movedPieceIds: [piece.id],
+    );
   }
 
   ({double width, double height}) _pieceSize(PuzzlePiece piece) {
@@ -284,6 +291,8 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer> {
 
   Widget _buildPiece(PuzzlePiece piece) {
     final isActive = piece.id == _draggedPieceId;
+    final isHintHighlighted =
+        widget.hintHighlightedPieceIds.contains(piece.id);
     final tileSize = widget.tileSize;
     final left = isActive
         ? (_liveDragTopLeft?.dx ?? cellTopLeft(piece.anchorRow, piece.anchorCol, tileSize).dx)
@@ -311,6 +320,7 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer> {
                 isDragging: isActive,
                 showBorder: isActive || !piece.isCompletedWordGroup,
                 isCompleted: piece.isCompletedWordGroup,
+                isHintHighlighted: isHintHighlighted,
               ),
             ),
         ],
@@ -345,7 +355,9 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer> {
       child: IgnorePointer(
         ignoring: !widget.interactionEnabled || (_isDragLocked && !isActive),
         child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
+          behavior: piece.isCompletedWordGroup
+              ? HitTestBehavior.deferToChild
+              : HitTestBehavior.opaque,
           onPanStart: (details) => _onPanStart(piece, details),
           onPanUpdate: (details) => _onPanUpdate(piece, details),
           onPanEnd: (_) => _onPanEnd(piece),
@@ -373,8 +385,8 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer> {
     return AbsorbPointer(
       absorbing: !widget.interactionEnabled,
       child: SizedBox(
-        width: widget.canvasCols * widget.tileSize,
-        height: widget.canvasRows * widget.tileSize,
+        width: widget.boardCols * widget.tileSize,
+        height: widget.boardRows * widget.tileSize,
         child: Stack(
           key: _stackKey,
           clipBehavior: Clip.hardEdge,

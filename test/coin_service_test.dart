@@ -16,10 +16,10 @@ void main() {
   });
 
   test('addCoins increases balance', () async {
-    await CoinService.instance.addCoins(kPuzzleCompletionCoinReward);
+    await CoinService.instance.addCoins(100);
     expect(
       CoinService.instance.coinBalance,
-      kInitialCoinBalance + kPuzzleCompletionCoinReward,
+      kInitialCoinBalance + 100,
     );
   });
 

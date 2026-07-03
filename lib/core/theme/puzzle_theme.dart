@@ -16,8 +16,8 @@ abstract final class PuzzleTheme {
   static const Color badgeRed = Color(0xFFE53935);
 
   static const double headerRadius = 16;
-  static const double boardRadius = 20;
-  static const double tileRadius = 7;
+  static const double boardRadius = 0;
+  static const double tileRadius = 0;
   static const double actionButtonSize = 56;
   static const double levelCardRadius = 16;
   static const double bottomNavHeight = 72;

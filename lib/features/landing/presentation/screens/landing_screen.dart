@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/audio/audio_settings_service.dart';
 import '../../../../core/audio/puzzle_audio_controller.dart';
-import '../../../../core/economy/coin_service.dart';
 import '../../../puzzle/data/models/puzzle_content.dart';
 import '../../../puzzle/data/repositories/puzzle_repository.dart';
 import '../../../puzzle/presentation/puzzle_screen.dart';
@@ -31,7 +30,6 @@ class _LandingScreenState extends State<LandingScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    CoinService.instance.load();
     _bootstrapAudio();
     _loadPuzzles();
   }
@@ -116,17 +114,12 @@ class _LandingScreenState extends State<LandingScreen>
         children: [
           const PuzzleNatureBackground(),
           SafeArea(
+            bottom: false,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                ListenableBuilder(
-                  listenable: CoinService.instance,
-                  builder: (context, _) {
-                    return HomeHeader(
-                      coinBalance: CoinService.instance.coinBalance,
-                      onSettingsPressed: () => showHomeSettingsSheet(context),
-                    );
-                  },
+                HomeHeader(
+                  onSettingsPressed: () => showHomeSettingsSheet(context),
                 ),
                 const HomeSectionTitle(),
                 Expanded(child: _buildBody(context)),

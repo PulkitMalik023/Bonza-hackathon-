@@ -2,68 +2,79 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/constants/board_constants.dart';
 import '../../../../core/theme/puzzle_theme.dart';
+import '../../../../core/widgets/animated_grid_background/animated_grid_painter.dart';
+import '../../../../core/widgets/animated_grid_background/grid_wave_controller.dart';
 
-class PuzzleBoardGrid extends StatelessWidget {
+class PuzzleBoardGrid extends StatefulWidget {
   const PuzzleBoardGrid({
     super.key,
     this.spacing = BoardConstants.kBoardTileSize,
+    this.gridRows = BoardConstants.kPlayGridRows,
+    this.gridCols = BoardConstants.kPlayGridCols,
     this.child,
   });
 
   final double spacing;
+  final int gridRows;
+  final int gridCols;
   final Widget? child;
 
   @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return CustomPaint(
-          painter: _PuzzleBoardGridPainter(
-            spacing: spacing,
-            backgroundColor: PuzzleTheme.boardBg,
-            lineColor: const Color(0xFFDCE8DC),
-          ),
-          child: child ?? SizedBox.expand(),
-        );
-      },
-    );
-  }
+  State<PuzzleBoardGrid> createState() => _PuzzleBoardGridState();
 }
 
-class _PuzzleBoardGridPainter extends CustomPainter {
-  _PuzzleBoardGridPainter({
-    required this.spacing,
-    required this.backgroundColor,
-    required this.lineColor,
-  });
+class _PuzzleBoardGridState extends State<PuzzleBoardGrid>
+    with SingleTickerProviderStateMixin {
+  late GridWaveController _waveController;
 
-  final double spacing;
-  final Color backgroundColor;
-  final Color lineColor;
+  static const _tileLightColor = PuzzleTheme.boardBg;
+  static const _tileDarkColor = Color(0xFFE8F2E7);
+  static const _waveHighlightColor = PuzzleTheme.lightGreen;
+  static const _tileBorderColor = Color(0xFFDCE8DC);
 
   @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawRect(
-      Offset.zero & size,
-      Paint()..color = backgroundColor,
+  void initState() {
+    super.initState();
+    _waveController = GridWaveController(
+      vsync: this,
+      waveDuration: const Duration(milliseconds: 1800),
+      waveInterval: const Duration(seconds: 5),
+      onTick: () => setState(() {}),
     );
-
-    final paint = Paint()
-      ..color = lineColor
-      ..strokeWidth = BoardConstants.kBoardGridLineWidth;
-
-    for (var x = 0.0; x <= size.width; x += spacing) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (var y = 0.0; y <= size.height; y += spacing) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
+    _waveController.start();
   }
 
   @override
-  bool shouldRepaint(covariant _PuzzleBoardGridPainter oldDelegate) {
-    return oldDelegate.spacing != spacing ||
-        oldDelegate.backgroundColor != backgroundColor ||
-        oldDelegate.lineColor != lineColor;
+  void dispose() {
+    _waveController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final gridWidth = widget.gridCols * widget.spacing;
+    final gridHeight = widget.gridRows * widget.spacing;
+
+    return SizedBox(
+      width: gridWidth,
+      height: gridHeight,
+      child: CustomPaint(
+        painter: AnimatedGridPainter(
+          tileSize: widget.spacing,
+          topGradientColor: PuzzleTheme.boardBg,
+          bottomGradientColor: PuzzleTheme.boardBg,
+          waveProgress: _waveController.waveProgress,
+          wavePattern: _waveController.currentPattern,
+          tileLightColor: _tileLightColor,
+          tileDarkColor: _tileDarkColor,
+          waveHighlightColor: _waveHighlightColor,
+          waveSpread: 3,
+          waveHighlightStrength: 0.35,
+          tileBorderColor: _tileBorderColor,
+          tileBorderWidth: BoardConstants.kBoardGridLineWidth,
+        ),
+        child: widget.child,
+      ),
+    );
   }
 }

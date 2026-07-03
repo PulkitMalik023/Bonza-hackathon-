@@ -214,5 +214,43 @@ void main() {
         const BoardCellPosition(row: boardRows - 1, col: 1),
       );
     });
+
+    test('snaps to last canvas row when canvas matches board dimensions', () {
+      const canvasRows = 8;
+      const canvasCols = 6;
+      final piece = PuzzlePiece(
+        id: 'p1',
+        chunkId: 'c1',
+        anchorRow: canvasRows - 1,
+        anchorCol: 2,
+        spawnAnchorRow: canvasRows - 1,
+        spawnAnchorCol: 2,
+        cells: const [PieceCell(letter: 'Z', rowOffset: 0, colOffset: 0)],
+      );
+      final occupancy = BoardOccupancy();
+      final topLeft = Offset(
+        2 * tileSize,
+        (canvasRows - 1) * tileSize + tileSize * 0.75,
+      );
+
+      final result = evaluateChunkDrop(
+        droppedTopLeft: topLeft,
+        piece: piece,
+        occupancy: occupancy,
+        boardRows: canvasRows,
+        boardCols: canvasCols,
+        tileSize: tileSize,
+        canvasRows: canvasRows,
+        canvasCols: canvasCols,
+      );
+
+      expect(result.overlapsBoard, isTrue);
+      expect(result.insideBoard, isTrue);
+      expect(result.action, ChunkDropAction.snap);
+      expect(
+        result.targetAnchor,
+        BoardCellPosition(row: canvasRows - 1, col: 2),
+      );
+    });
   });
 }

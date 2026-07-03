@@ -8,9 +8,11 @@ class PuzzleHintTooltipRow extends StatelessWidget {
   const PuzzleHintTooltipRow({
     super.key,
     required this.onHintPressed,
+    this.hintText,
   });
 
   final VoidCallback onHintPressed;
+  final String? hintText;
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +21,7 @@ class PuzzleHintTooltipRow extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: _HintTooltip(text: 'Use a hint'),
+            child: _HintTooltip(text: hintText ?? 'Use a hint'),
           ),
           const SizedBox(width: 8),
           Material(

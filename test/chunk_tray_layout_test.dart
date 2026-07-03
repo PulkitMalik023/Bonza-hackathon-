@@ -1,6 +1,8 @@
+import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:jam_pro/core/constants/board_constants.dart';
 import 'package:jam_pro/features/puzzle/data/deconstructors/puzzle_deconstructor.dart';
 import 'package:jam_pro/features/puzzle/data/generators/puzzle_layout_generator.dart';
 import 'package:jam_pro/features/puzzle/domain/grid_layout.dart';
@@ -15,11 +17,11 @@ void main() {
   final trayService = ChunkTrayLayoutService();
 
   group('ChunkTrayLayoutService', () {
-    test('fits all chunks within computed canvas bounds', () {
+    test('fits all chunks within fixed board canvas bounds', () {
       final layout = generator.generateAllLayouts(['NORTH', 'SOUTH', 'EAST', 'WEST']).first;
       final deconstructed = deconstructor.build(layout);
-      final boardRows = layout.maxRow - layout.minRow + 1;
-      final boardCols = layout.maxCol - layout.minCol + 1;
+      const boardRows = BoardConstants.kPlayGridRows;
+      const boardCols = BoardConstants.kPlayGridCols;
 
       final result = trayService.compute(
         boardRows: boardRows,
@@ -32,7 +34,9 @@ void main() {
         layout: result,
       );
 
-      expect(result.canvasCols, greaterThanOrEqualTo(boardCols));
+      expect(result.canvasRows, boardRows);
+      expect(result.canvasCols, boardCols);
+      expect(result.fitsInBoard, isTrue);
       expect(
         allPiecesFitCanvas(
           pieces: pieces,
@@ -42,16 +46,19 @@ void main() {
         isTrue,
       );
 
-      for (var index = 0; index < pieces.length; index++) {
-        expect(pieces[index].anchorRow, greaterThanOrEqualTo(boardRows + 1));
+      for (final piece in pieces) {
+        expect(piece.anchorRow, greaterThanOrEqualTo(0));
+        expect(piece.anchorRow, lessThan(boardRows));
+        expect(piece.anchorCol, greaterThanOrEqualTo(0));
+        expect(piece.anchorCol, lessThan(boardCols));
       }
     });
 
     test('spawn positions do not overlap for directions puzzle', () {
       final layout = generator.generateAllLayouts(['NORTH', 'SOUTH', 'EAST', 'WEST']).first;
       final deconstructed = deconstructor.build(layout);
-      final boardRows = layout.maxRow - layout.minRow + 1;
-      final boardCols = layout.maxCol - layout.minCol + 1;
+      const boardRows = BoardConstants.kPlayGridRows;
+      const boardCols = BoardConstants.kPlayGridCols;
 
       final result = trayService.compute(
         boardRows: boardRows,
@@ -75,13 +82,13 @@ void main() {
       }
     });
 
-    test('planets layout uses expanded canvas width', () {
+    test('planets layout keeps canvas equal to board dimensions', () {
       final layout = generator
           .generateAllLayouts(['VENUS', 'NEPTUNE', 'MARS', 'SATURN', 'JUPITER'])
           .first;
       final deconstructed = deconstructor.build(layout);
-      final boardRows = layout.maxRow - layout.minRow + 1;
-      final boardCols = layout.maxCol - layout.minCol + 1;
+      const boardRows = BoardConstants.kPlayGridRows;
+      const boardCols = BoardConstants.kPlayGridCols;
 
       final result = trayService.compute(
         boardRows: boardRows,
@@ -90,7 +97,8 @@ void main() {
         tileSize: 48,
       );
 
-      expect(result.canvasCols, greaterThanOrEqualTo(boardCols));
+      expect(result.canvasRows, boardRows);
+      expect(result.canvasCols, boardCols);
       expect(result.anchors, hasLength(deconstructed.chunks.length));
     });
 
@@ -99,8 +107,8 @@ void main() {
           .generateAllLayouts(['VENUS', 'NEPTUNE', 'MARS', 'SATURN', 'JUPITER'])
           .first;
       final deconstructed = deconstructor.build(layout);
-      final boardRows = layout.maxRow - layout.minRow + 1;
-      final boardCols = layout.maxCol - layout.minCol + 1;
+      const boardRows = BoardConstants.kPlayGridRows;
+      const boardCols = BoardConstants.kPlayGridCols;
 
       final unconstrained = trayService.compute(
         boardRows: boardRows,
@@ -117,18 +125,21 @@ void main() {
         viewportSize: const Size(400, 900),
       );
 
-      final unconstrainedArea = unconstrained.canvasRows * unconstrained.canvasCols;
-      final constrainedArea = constrained.canvasRows * constrained.canvasCols;
-      expect(constrainedArea, lessThanOrEqualTo(unconstrainedArea));
+      expect(unconstrained.canvasRows, boardRows);
+      expect(constrained.canvasRows, boardRows);
+      expect(constrained.fitsInBoard, isTrue);
     });
 
     test('all chunks visible in viewport after centering for directions puzzle', () {
       final layout = generator.generateAllLayouts(['NORTH', 'SOUTH', 'EAST', 'WEST']).first;
       final deconstructed = deconstructor.build(layout);
-      final boardRows = layout.maxRow - layout.minRow + 1;
-      final boardCols = layout.maxCol - layout.minCol + 1;
-      const tileSize = 48.0;
+      const boardRows = BoardConstants.kPlayGridRows;
+      const boardCols = BoardConstants.kPlayGridCols;
       const viewportSize = Size(400, 700);
+      final tileSize = min(
+        viewportSize.width / boardCols,
+        viewportSize.height / boardRows,
+      );
 
       final result = trayService.compute(
         boardRows: boardRows,
@@ -156,42 +167,51 @@ void main() {
     test('prefers fewer chunks per row for narrow viewport when possible', () {
       final layout = generator.generateAllLayouts(['NORTH', 'SOUTH', 'EAST', 'WEST']).first;
       final deconstructed = deconstructor.build(layout);
-      final boardRows = layout.maxRow - layout.minRow + 1;
-      final boardCols = layout.maxCol - layout.minCol + 1;
-      const tileSize = 48.0;
+      const boardRows = BoardConstants.kPlayGridRows;
+      const boardCols = BoardConstants.kPlayGridCols;
+      const wideViewport = Size(500, 900);
+      const narrowViewport = Size(360, 900);
+      final wideTileSize = min(
+        wideViewport.width / boardCols,
+        wideViewport.height / boardRows,
+      );
+      final narrowTileSize = min(
+        narrowViewport.width / boardCols,
+        narrowViewport.height / boardRows,
+      );
 
       final wide = trayService.compute(
         boardRows: boardRows,
         boardCols: boardCols,
         chunks: deconstructed.chunks,
-        tileSize: tileSize,
-        viewportSize: const Size(500, 900),
+        tileSize: wideTileSize,
+        viewportSize: wideViewport,
       );
 
       final narrow = trayService.compute(
         boardRows: boardRows,
         boardCols: boardCols,
         chunks: deconstructed.chunks,
-        tileSize: tileSize,
-        viewportSize: const Size(360, 900),
+        tileSize: narrowTileSize,
+        viewportSize: narrowViewport,
       );
 
-      expect(narrow.canvasCols * tileSize, lessThanOrEqualTo(360));
+      expect(narrow.canvasCols * narrowTileSize, lessThanOrEqualTo(narrowViewport.width));
+      expect(narrow.canvasRows, boardRows);
+      expect(narrow.canvasCols, boardCols);
       expect(
         allChunksVisibleAfterCentering(
           chunks: deconstructed.chunks,
           anchors: narrow.anchors,
           canvasRows: narrow.canvasRows,
           canvasCols: narrow.canvasCols,
-          tileSize: tileSize,
-          viewportSize: const Size(360, 900),
+          tileSize: narrowTileSize,
+          viewportSize: narrowViewport,
         ),
         isTrue,
       );
-      expect(
-        narrow.canvasCols * narrow.canvasRows,
-        lessThanOrEqualTo(wide.canvasCols * wide.canvasRows),
-      );
+      expect(wide.fitsInBoard, isTrue);
+      expect(narrow.fitsInBoard, isTrue);
     });
   });
 

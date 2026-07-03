@@ -7,17 +7,15 @@ class TutorialDemoScaffold extends StatelessWidget {
   const TutorialDemoScaffold({
     super.key,
     required this.child,
-    this.height = 175,
   });
 
   final Widget child;
-  final double height;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: height,
       width: double.infinity,
+      height: double.infinity,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(14),
         child: DecoratedBox(

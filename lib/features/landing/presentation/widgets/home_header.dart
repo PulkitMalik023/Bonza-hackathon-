@@ -1,19 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/audio/ui_button_sound.dart';
-import '../../../../core/constants/home_assets.dart';
 import '../../../../core/theme/puzzle_theme.dart';
-import '../../../../core/widgets/asset_icon.dart';
-import '../../../puzzle/presentation/widgets/puzzle_coin_pill.dart';
+import '../../../../core/widgets/settings_icon_button.dart';
 
 class HomeHeader extends StatelessWidget {
   const HomeHeader({
     super.key,
-    required this.coinBalance,
     this.onSettingsPressed,
   });
 
-  final int coinBalance;
   final VoidCallback? onSettingsPressed;
 
   @override
@@ -32,7 +27,7 @@ class HomeHeader extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           child: Row(
             children: [
-              _SettingsButton(onPressed: onSettingsPressed),
+              const SizedBox(width: 40),
               Expanded(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -52,39 +47,8 @@ class HomeHeader extends StatelessWidget {
                   ],
                 ),
               ),
-              PuzzleCoinPill(coinBalance: coinBalance),
+              SettingsIconButton(onPressed: onSettingsPressed),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SettingsButton extends StatelessWidget {
-  const _SettingsButton({this.onPressed});
-
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: PuzzleTheme.mediumGreen,
-      shape: const CircleBorder(),
-      elevation: 3,
-      child: InkWell(
-        onTap: withButtonTap(onPressed),
-        customBorder: const CircleBorder(),
-        child: SizedBox(
-          width: 40,
-          height: 40,
-          child: Center(
-            child: AssetIcon(
-              assetPath: HomeAssets.settings,
-              fallbackIcon: Icons.settings_rounded,
-              size: 22,
-              color: PuzzleTheme.yellow,
-            ),
           ),
         ),
       ),
