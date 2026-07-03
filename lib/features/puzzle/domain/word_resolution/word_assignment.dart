@@ -451,7 +451,28 @@ List<WordAssignmentOption> assignmentsForCandidate({
           metadata: metadata,
         ),
       )
-      .toList();
+      .toList()
+    ..sort(_compareAssignmentsStrictFirst);
+}
+
+int _compareAssignmentsStrictFirst(
+  WordAssignmentOption a,
+  WordAssignmentOption b,
+) {
+  final aPriority = _assignmentTypePriority(a.assignmentType);
+  final bPriority = _assignmentTypePriority(b.assignmentType);
+  return aPriority.compareTo(bPriority);
+}
+
+int _assignmentTypePriority(AssignmentType type) {
+  switch (type) {
+    case AssignmentType.strictFinal:
+      return 0;
+    case AssignmentType.flexibleIndependent:
+      return 1;
+    case AssignmentType.latentInventory:
+      return 2;
+  }
 }
 
 extension WordResolutionOptionsCopy on WordResolutionOptions {

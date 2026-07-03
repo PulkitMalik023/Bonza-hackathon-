@@ -152,6 +152,7 @@ class WordAssignmentOption {
     required this.contributingComponentIds,
     required this.assignmentType,
     required this.debugReason,
+    this.groupedBoardCells,
   });
 
   final String wordId;
@@ -161,6 +162,7 @@ class WordAssignmentOption {
   final List<String> contributingComponentIds;
   final AssignmentType assignmentType;
   final String debugReason;
+  final List<OrderedBoardCell>? groupedBoardCells;
 }
 
 class WordResolutionOptions {

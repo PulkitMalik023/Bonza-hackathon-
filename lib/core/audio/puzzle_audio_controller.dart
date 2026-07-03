@@ -150,6 +150,10 @@ class PuzzleAudioController {
     await _playSfx(PuzzleSounds.tileDrop);
   }
 
+  Future<void> playPuzzleChunkSpawnSound() async {
+    await playTilePickSound();
+  }
+
   Future<void> playButtonTapSound() async {
     if (!AudioSettingsService.instance.sfxEnabled) {
       return;

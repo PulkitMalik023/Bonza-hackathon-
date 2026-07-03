@@ -82,6 +82,30 @@ bool canRemainingPuzzleBeSolved({
   );
 }
 
+List<String> getBlockedUnsolvedWordIds({
+  required PuzzleRuntimeState state,
+  required PuzzleLayoutMetadata metadata,
+  WordResolutionOptions options = const WordResolutionOptions(),
+}) {
+  final blocked = <String>[];
+  for (final wordId in metadata.targetWordIds) {
+    if (state.solvedWordIds.contains(wordId)) {
+      continue;
+    }
+
+    if (_assignmentCountForSolver(
+          wordId: wordId,
+          state: state,
+          metadata: metadata,
+          options: options,
+        ) ==
+        0) {
+      blocked.add(wordId);
+    }
+  }
+  return blocked;
+}
+
 String? getNextUnsolvedWordForSolver({
   required PuzzleRuntimeState state,
   required PuzzleLayoutMetadata metadata,
@@ -219,6 +243,13 @@ bool solveRemainingWordsRecursive({
     }
 
     logSolverDeadEnd(depth, nextWordId, 'no_possible_assignments');
+    for (final blockedId in getBlockedUnsolvedWordIds(
+      state: state,
+      metadata: metadata,
+      options: options,
+    )) {
+      logBlockedWord(blockedId);
+    }
     return false;
   }
 
@@ -249,5 +280,12 @@ bool solveRemainingWordsRecursive({
   }
 
   logSolverDeadEnd(depth, nextWordId, 'all_assignments_failed');
+  for (final blockedId in getBlockedUnsolvedWordIds(
+    state: state,
+    metadata: metadata,
+    options: options,
+  )) {
+    logBlockedWord(blockedId);
+  }
   return false;
 }

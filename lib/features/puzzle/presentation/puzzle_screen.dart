@@ -8,6 +8,7 @@ import '../../../core/constants/board_constants.dart';
 import '../../../core/constants/debug_flags.dart';
 import '../../../core/theme/puzzle_theme.dart';
 import '../data/deconstructors/puzzle_deconstructor.dart';
+import '../data/deconstructors/puzzle_layout_selector.dart';
 import '../data/generators/puzzle_layout_generator.dart';
 import '../data/models/deconstructed_puzzle.dart';
 import '../data/models/generated_puzzle_layout.dart';
@@ -17,6 +18,7 @@ import '../data/repositories/puzzle_repository.dart';
 import '../domain/board_geometry.dart';
 import '../domain/word_resolution/puzzle_layout_metadata.dart';
 import '../domain/word_resolution/puzzle_runtime_state.dart';
+import '../domain/word_resolution/word_resolution_logger.dart';
 import '../domain/word_resolution/word_resolution_models.dart';
 import '../domain/word_resolution/word_resolution_service.dart';
 import '../domain/deconstructed_pieces_builder.dart';
@@ -36,6 +38,7 @@ import 'widgets/puzzle_nature_background.dart';
 import 'widgets/puzzle_top_header.dart';
 import 'hints/final_grid_hint_popup.dart';
 import 'how_to_play/how_to_play_popup.dart';
+import 'intro/puzzle_intro_animation_logger.dart';
 
 /// Returns the next layout index when cycling through [layoutCount] layouts.
 int nextLayoutIndex(int currentIndex, int layoutCount) {
@@ -78,12 +81,14 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   Set<String> _reservedCellIds = {};
   Map<String, SolvedAssignment> _solvedAssignments = {};
   bool _puzzleCompletionHandled = false;
-  bool _interactionEnabled = true;
+  bool _interactionEnabled = false;
+  bool _introAnimationPending = true;
   String? _lastEvaluatedPiecesSnapshot;
   bool _applyingUndo = false;
   PuzzleConnectHint? _activeHint;
   Set<String> _hintHighlightedPieceIds = {};
   Timer? _hintClearTimer;
+  int _resolutionStepCounter = 0;
 
   PuzzleLayout? get _currentLayout =>
       _layouts.isEmpty ? null : _layouts[_currentLayoutIndex];
@@ -256,12 +261,22 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
         throw StateError('Puzzle ${widget.puzzleId} is disabled');
       }
 
-      final layouts = PuzzleLayoutGenerator().generateAllLayouts(puzzle.words);
+      final layoutSelector = PuzzleLayoutSelector();
+      final generatedLayouts =
+          PuzzleLayoutGenerator().generateAllLayouts(puzzle.words);
+      final layouts =
+          layoutSelector.prioritizeValidDeconstructionLayouts(generatedLayouts);
+      final validLayoutCount = generatedLayouts
+          .where(layoutSelector.hasValidDeconstruction)
+          .length;
 
       debugPrint('[PuzzleScreen] Loaded puzzle: ${puzzle.id}');
       debugPrint('[PuzzleScreen] Category: ${puzzle.category}');
       debugPrint('[PuzzleScreen] Words: ${puzzle.words}');
-      debugPrint('[PuzzleScreen] Total layouts: ${layouts.length}');
+      debugPrint(
+        '[PuzzleScreen] Total layouts: ${generatedLayouts.length} '
+        '(valid deconstruction: $validLayoutCount)',
+      );
 
       if (layouts.isEmpty) {
         if (!mounted) {
@@ -430,11 +445,27 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     _solvedAssignments = {};
     _layoutMetadata = null;
     _puzzleCompletionHandled = false;
-    _interactionEnabled = true;
+    _introAnimationPending = true;
+    _interactionEnabled = false;
     _deconstructedPuzzle = null;
     _lastEvaluatedPiecesSnapshot = null;
     _moveHistory.clear();
     _clearActiveHint();
+  }
+
+  void _onIntroComplete() {
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _introAnimationPending = false;
+      if (!_puzzleCompletionHandled) {
+        _interactionEnabled = true;
+      }
+    });
+    PuzzleIntroAnimationLogger.introComplete(
+      interactionEnabled: !_puzzleCompletionHandled,
+    );
   }
 
   String _piecesSnapshot(List<PuzzlePiece> pieces) {
@@ -501,6 +532,13 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
           )
         : <String>{};
 
+    _resolutionStepCounter++;
+    logMoveStep(
+      step: _resolutionStepCounter,
+      movedChunkIds: movedChunkIds,
+      boardLetterCount: playAreaBoard.length,
+    );
+
     final result = handlePuzzleStateAfterReconnect(
       pieces: event.pieces,
       metadata: metadata,
@@ -545,6 +583,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
     setState(() {
       _puzzleCompletionHandled = true;
+      _introAnimationPending = false;
       _interactionEnabled = false;
     });
 
@@ -713,6 +752,13 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                         },
                         onDragEnd: _audioController.playTileDropSound,
                         interactionEnabled: _interactionEnabled,
+                        introAnimationEnabled:
+                            _introAnimationPending &&
+                            !_puzzleCompletionHandled &&
+                            _playPieces.isNotEmpty,
+                        onIntroComplete: _onIntroComplete,
+                        onChunkSpawnSound:
+                            _audioController.playPuzzleChunkSpawnSound,
                       ),
                   ],
                 );

@@ -1,6 +1,3 @@
-import 'dart:math';
-import 'dart:ui';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -12,7 +9,8 @@ import '../../domain/puzzle_board_state.dart';
 import '../../domain/puzzle_piece.dart';
 import '../../domain/puzzle_solved_checker.dart';
 import '../../domain/word_completion_debug.dart';
-import 'puzzle_node_tile.dart';
+import '../intro/puzzle_chunk_intro_coordinator.dart';
+import 'puzzle_piece_content.dart';
 
 export '../../domain/chunk_drop_evaluator.dart' show canPlaceOnBoard;
 
@@ -29,6 +27,9 @@ class PuzzleChunksLayer extends StatefulWidget {
     required this.onPiecesChanged,
     required this.tileSize,
     this.interactionEnabled = true,
+    this.introAnimationEnabled = false,
+    this.onIntroComplete,
+    this.onChunkSpawnSound,
     this.onDragStart,
     this.onDragEnd,
     this.hintHighlightedPieceIds = const {},
@@ -42,6 +43,9 @@ class PuzzleChunksLayer extends StatefulWidget {
   final ValueChanged<PiecesChangeEvent> onPiecesChanged;
   final double tileSize;
   final bool interactionEnabled;
+  final bool introAnimationEnabled;
+  final VoidCallback? onIntroComplete;
+  final VoidCallback? onChunkSpawnSound;
   final VoidCallback? onDragStart;
   final VoidCallback? onDragEnd;
   final Set<String> hintHighlightedPieceIds;
@@ -50,7 +54,8 @@ class PuzzleChunksLayer extends StatefulWidget {
   State<PuzzleChunksLayer> createState() => _PuzzleChunksLayerState();
 }
 
-class _PuzzleChunksLayerState extends State<PuzzleChunksLayer> {
+class _PuzzleChunksLayerState extends State<PuzzleChunksLayer>
+    with SingleTickerProviderStateMixin {
   final GlobalKey _stackKey = GlobalKey();
   final BoardOccupancy _occupancy = BoardOccupancy();
   final Set<String> _animatedCompletedGroupIds = {};
@@ -62,18 +67,104 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer> {
   int? _dragStartAnchorRow;
   int? _dragStartAnchorCol;
 
+  PuzzleChunkIntroCoordinator? _introCoordinator;
+  bool _introStartedForCurrentPieces = false;
+  Object? _introPiecesIdentity;
+  int _introStartRequestId = 0;
+
   bool get _isDragLocked => _draggedPieceId != null;
+
+  bool get _isIntroActive =>
+      widget.introAnimationEnabled &&
+      (_introCoordinator?.isRunning ?? false);
 
   @override
   void initState() {
     super.initState();
     _pieces = _clonePieces(widget.pieces);
     _rebuildOccupancy();
+    _initIntroCoordinator();
+    _maybeStartIntro();
+  }
+
+  @override
+  void dispose() {
+    _introStartRequestId++;
+    _introCoordinator?.dispose();
+    super.dispose();
+  }
+
+  void _initIntroCoordinator() {
+    _introCoordinator?.dispose();
+    _introCoordinator = PuzzleChunkIntroCoordinator(
+      vsync: this,
+      onUpdate: () {
+        if (mounted) {
+          setState(() {});
+        }
+      },
+      onAllComplete: () {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _introStartedForCurrentPieces = false;
+        });
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) {
+            return;
+          }
+          widget.onIntroComplete?.call();
+        });
+      },
+    );
+  }
+
+  void _maybeStartIntro({bool force = false}) {
+    if (!widget.introAnimationEnabled || _pieces.isEmpty) {
+      return;
+    }
+
+    final piecesIdentity = Object.hashAll(_pieces.map((piece) => piece.id));
+    if (!force &&
+        _introStartedForCurrentPieces &&
+        _introPiecesIdentity == piecesIdentity) {
+      return;
+    }
+
+    final requestId = ++_introStartRequestId;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || requestId != _introStartRequestId) {
+        return;
+      }
+      if (!widget.introAnimationEnabled || _pieces.isEmpty) {
+        return;
+      }
+
+      final currentIdentity = Object.hashAll(_pieces.map((piece) => piece.id));
+      if (!force &&
+          _introStartedForCurrentPieces &&
+          _introPiecesIdentity == currentIdentity) {
+        return;
+      }
+
+      _introStartedForCurrentPieces = true;
+      _introPiecesIdentity = currentIdentity;
+
+      _introCoordinator?.start(
+        _pieces,
+        onChunkSpawnSound: () => widget.onChunkSpawnSound?.call(),
+      );
+    });
   }
 
   @override
   void didUpdateWidget(covariant PuzzleChunksLayer oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    final introTurnedOn =
+        !oldWidget.introAnimationEnabled && widget.introAnimationEnabled;
+    final piecesChanged = oldWidget.pieces != widget.pieces;
 
     if (oldWidget.pieces != widget.pieces) {
       _trackNewCompletedGroups(oldWidget.pieces, widget.pieces);
@@ -87,6 +178,14 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer> {
         oldWidget.canvasRows != widget.canvasRows ||
         oldWidget.canvasCols != widget.canvasCols) {
       _rebuildOccupancy();
+    }
+
+    if (introTurnedOn || (piecesChanged && widget.introAnimationEnabled)) {
+      _introStartedForCurrentPieces = false;
+      _maybeStartIntro(force: true);
+    } else if (!widget.introAnimationEnabled && _introCoordinator?.isRunning == true) {
+      _introCoordinator?.disposeTicker();
+      _introStartedForCurrentPieces = false;
     }
   }
 
@@ -294,38 +393,75 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer> {
     final isHintHighlighted =
         widget.hintHighlightedPieceIds.contains(piece.id);
     final tileSize = widget.tileSize;
+    final anchorTopLeft = cellTopLeft(
+      piece.anchorRow,
+      piece.anchorCol,
+      tileSize,
+    );
     final left = isActive
-        ? (_liveDragTopLeft?.dx ?? cellTopLeft(piece.anchorRow, piece.anchorCol, tileSize).dx)
-        : cellTopLeft(piece.anchorRow, piece.anchorCol, tileSize).dx;
+        ? (_liveDragTopLeft?.dx ?? anchorTopLeft.dx)
+        : anchorTopLeft.dx;
     final top = isActive
-        ? (_liveDragTopLeft?.dy ?? cellTopLeft(piece.anchorRow, piece.anchorCol, tileSize).dy)
-        : cellTopLeft(piece.anchorRow, piece.anchorCol, tileSize).dy;
+        ? (_liveDragTopLeft?.dy ?? anchorTopLeft.dy)
+        : anchorTopLeft.dy;
     final pieceSize = _pieceSize(piece);
     final shouldPulseCompletedGroup =
         piece.isCompletedWordGroup && _animatedCompletedGroupIds.contains(piece.id);
 
-    final pieceContent = SizedBox(
-      width: pieceSize.width,
-      height: pieceSize.height,
-      child: Stack(
+    final introValues = _introCoordinator?.values[piece.id];
+    final isIntroPiece =
+        _isIntroActive && introValues != null && !introValues.isIntroFinished;
+
+    Widget pieceContent;
+    if (isIntroPiece) {
+      pieceContent = Stack(
         clipBehavior: Clip.none,
         children: [
-          for (final cell in piece.cells)
-            Positioned(
-              left: cell.colOffset * tileSize,
-              top: cell.rowOffset * tileSize,
-              child: PuzzleNodeTile(
-                character: cell.letter,
-                tileSize: tileSize,
-                isDragging: isActive,
-                showBorder: isActive || !piece.isCompletedWordGroup,
-                isCompleted: piece.isCompletedWordGroup,
-                isHintHighlighted: isHintHighlighted,
+          if (introValues.showGhost)
+            Opacity(
+              opacity: introValues.ghostOpacity,
+              child: Transform.scale(
+                scale: introValues.ghostScale,
+                child: PuzzlePieceContent(
+                  piece: piece,
+                  tileSize: tileSize,
+                  pieceWidth: pieceSize.width,
+                  pieceHeight: pieceSize.height,
+                  visualMode: PuzzlePieceVisualMode.ghost,
+                ),
               ),
             ),
+          Opacity(
+            opacity: introValues.realOpacity,
+            child: Transform.translate(
+              offset: Offset(0, introValues.realOffsetY),
+              child: Transform.scale(
+                scale: introValues.realScale,
+                child: PuzzlePieceContent(
+                  piece: piece,
+                  tileSize: tileSize,
+                  pieceWidth: pieceSize.width,
+                  pieceHeight: pieceSize.height,
+                  isDragging: false,
+                  isCompleted: piece.isCompletedWordGroup,
+                  isHintHighlighted: isHintHighlighted,
+                ),
+              ),
+            ),
+          ),
         ],
-      ),
-    );
+      );
+    } else {
+      pieceContent = PuzzlePieceContent(
+        piece: piece,
+        tileSize: tileSize,
+        pieceWidth: pieceSize.width,
+        pieceHeight: pieceSize.height,
+        isDragging: isActive,
+        isCompleted: piece.isCompletedWordGroup,
+        isHintHighlighted: isHintHighlighted,
+      );
+    }
 
     final animatedContent = shouldPulseCompletedGroup
         ? TweenAnimationBuilder<double>(
@@ -353,7 +489,9 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer> {
       left: left,
       top: top,
       child: IgnorePointer(
-        ignoring: !widget.interactionEnabled || (_isDragLocked && !isActive),
+        ignoring: !widget.interactionEnabled ||
+            _isIntroActive ||
+            (_isDragLocked && !isActive),
         child: GestureDetector(
           behavior: piece.isCompletedWordGroup
               ? HitTestBehavior.deferToChild

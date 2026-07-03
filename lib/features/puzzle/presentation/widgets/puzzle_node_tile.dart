@@ -7,6 +7,7 @@ enum PuzzleTileVisualState {
   dragging,
   completed,
   hintHighlighted,
+  ghost,
 }
 
 class PuzzleNodeTile extends StatelessWidget {
@@ -18,6 +19,7 @@ class PuzzleNodeTile extends StatelessWidget {
     this.showBorder = true,
     this.isCompleted = false,
     this.isHintHighlighted = false,
+    this.isGhost = false,
   });
 
   final String character;
@@ -26,8 +28,12 @@ class PuzzleNodeTile extends StatelessWidget {
   final bool showBorder;
   final bool isCompleted;
   final bool isHintHighlighted;
+  final bool isGhost;
 
   PuzzleTileVisualState get visualState {
+    if (isGhost) {
+      return PuzzleTileVisualState.ghost;
+    }
     if (isDragging) {
       return PuzzleTileVisualState.dragging;
     }
@@ -62,7 +68,9 @@ class PuzzleNodeTile extends StatelessWidget {
           child: Text(
             character,
             style: TextStyle(
-              color: PuzzleTheme.tileText,
+              color: state == PuzzleTileVisualState.ghost
+                  ? const Color(0xFFBDBDBD).withValues(alpha: 0.4)
+                  : PuzzleTheme.tileText,
               fontSize: tileSize * 0.48,
               fontWeight: FontWeight.w800,
             ),
@@ -90,6 +98,8 @@ class PuzzleNodeTile extends StatelessWidget {
         return PuzzleTheme.tileBg.withValues(alpha: 0.92);
       case PuzzleTileVisualState.hintHighlighted:
         return PuzzleTheme.yellow.withValues(alpha: 0.35);
+      case PuzzleTileVisualState.ghost:
+        return const Color(0xFFF5F5F5);
     }
   }
 
@@ -103,6 +113,8 @@ class PuzzleNodeTile extends StatelessWidget {
         return PuzzleTheme.lightGreen.withValues(alpha: 0.6);
       case PuzzleTileVisualState.hintHighlighted:
         return PuzzleTheme.yellow;
+      case PuzzleTileVisualState.ghost:
+        return const Color(0x1A000000);
     }
   }
 
@@ -121,6 +133,8 @@ class PuzzleNodeTile extends StatelessWidget {
             spreadRadius: 1,
           ),
         ];
+      case PuzzleTileVisualState.ghost:
+        return const [];
     }
   }
 }

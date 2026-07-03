@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../../core/constants/debug_flags.dart';
 import '../board_cell_position.dart';
 import 'puzzle_runtime_state.dart';
 import 'word_resolution_models.dart';
@@ -134,6 +135,49 @@ void logCandidateRejected({
 }) {
   _log(
     '[CANDIDATE_REJECTED] candidateText=$candidateText wordId=$wordId reason=$reason',
+  );
+}
+
+void logMoveStep({
+  required int step,
+  required Iterable<String> movedChunkIds,
+  required int boardLetterCount,
+}) {
+  if (!kLogWordResolutionSteps) {
+    return;
+  }
+  _log(
+    '[MOVE_STEP] step=$step movedChunks=$movedChunkIds '
+    'boardLetters=$boardLetterCount',
+  );
+}
+
+void logExactLineRejected({
+  required String candidateText,
+  required String reason,
+}) {
+  _log('[EXACT_LINE_REJECT] candidateText=$candidateText reason=$reason');
+}
+
+void logSolvabilityReject({
+  required String wordId,
+  required String candidateText,
+}) {
+  _log(
+    '[SOLVABILITY_REJECT] wordId=$wordId candidateText=$candidateText',
+  );
+}
+
+void logBlockedWord(String wordId) {
+  _log('[BLOCKED_WORD] wordId=$wordId');
+}
+
+void logGrouping({
+  required List<String> wordIds,
+  required int reservedCellCount,
+}) {
+  _log(
+    '[GROUPING] words=$wordIds reservedCellCount=$reservedCellCount',
   );
 }
 

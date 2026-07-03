@@ -25,7 +25,7 @@ void main() {
     expect(result.puzzleComplete, isTrue);
   });
 
-  test('SOUTH completion includes connected EA in completed group', () {
+  test('SOUTH completion groups only reserved SOUTH cells', () {
     final metadata = directionsMetadata();
     final eastId = wordIdForText(metadata, 'EAST')!;
     final eastCells = metadata.wordById[eastId]!.cellIds;
@@ -43,14 +43,15 @@ void main() {
 
     expect(completedGroups, hasLength(1));
     expect(completedGroups.first.completedAnswers, contains('SOUTH'));
-    expect(completedGroups.first.cells.length, greaterThanOrEqualTo(7));
+    expect(completedGroups.first.cells.length, equals(5));
     expect(
       activePiecesContainFinalCell(
         pieces: southOnly.pieces,
         metadata: metadata,
         finalCellId: eastECell,
       ),
-      isFalse,
+      isTrue,
+      reason: 'reserved-only grouping keeps EAST letters in active pieces',
     );
     expect(
       activePiecesContainFinalCell(
@@ -58,7 +59,8 @@ void main() {
         metadata: metadata,
         finalCellId: eastACell,
       ),
-      isFalse,
+      isTrue,
+      reason: 'reserved-only grouping keeps EAST letters in active pieces',
     );
   });
 
@@ -84,7 +86,7 @@ void main() {
       completedGroups.first.completedAnswers,
       containsAll(['NORTH', 'SOUTH']),
     );
-    expect(completedGroups.first.cells.length, greaterThanOrEqualTo(7));
+    expect(completedGroups.first.cells.length, equals(9));
   });
 
   test('NORTH inventory passes after SOUTH completes with crossword connected', () {

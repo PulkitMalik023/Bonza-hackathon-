@@ -216,8 +216,19 @@ List<CandidateWordInstance> _scanCandidatesFromSeeds({
     }
   }
 
-  final candidates = deduped.values.toList()
-    ..sort((a, b) => b.text.length.compareTo(a.text.length));
+  final candidates = <CandidateWordInstance>[];
+  for (final candidate in deduped.values) {
+    if (metadata.allTargetTexts.contains(candidate.text.toUpperCase())) {
+      candidates.add(candidate);
+    } else {
+      logExactLineRejected(
+        candidateText: candidate.text,
+        reason: 'no_exact_target_match',
+      );
+    }
+  }
+
+  candidates.sort((a, b) => b.text.length.compareTo(a.text.length));
 
   for (final candidate in candidates) {
     logCandidate(candidate);

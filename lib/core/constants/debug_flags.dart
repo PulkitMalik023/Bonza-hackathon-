@@ -14,3 +14,6 @@ const bool kLogPuzzleCompletion = false;
 
 /// Filter console with "Pulkit" after tile release: targets, formed H/V words, comparisons.
 const bool kLogPulkitWordCheck = true;
+
+/// Filter console with [impossible_logic] [MOVE_STEP] after each tile release.
+const bool kLogWordResolutionSteps = true;

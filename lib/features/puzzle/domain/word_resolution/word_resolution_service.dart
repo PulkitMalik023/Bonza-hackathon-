@@ -1,7 +1,6 @@
 import '../board_cell_position.dart';
 import '../completed_cluster_builder.dart';
 import '../completed_word_grouper.dart';
-import '../puzzle_board_state.dart';
 import '../puzzle_piece.dart';
 import 'candidate_word_scanner.dart';
 import 'puzzle_layout_metadata.dart';
@@ -207,6 +206,14 @@ List<WordAssignmentOption> resolveCompletedWordsAfterReconnect({
       continue;
     }
 
+    if (!metadata.allTargetTexts.contains(candidate.text.toUpperCase())) {
+      logExactLineRejected(
+        candidateText: candidate.text,
+        reason: 'no_exact_target_match',
+      );
+      continue;
+    }
+
     final matchedWordIds = getTargetWordIdsMatchingText(candidate.text, metadata);
     logTargetMatch(candidate.text, matchedWordIds);
 
@@ -240,11 +247,17 @@ List<WordAssignmentOption> resolveCompletedWordsAfterReconnect({
           break;
         }
 
-        logCandidateRejected(
-          candidateText: candidate.text,
+        logSolvabilityReject(
           wordId: wordId,
-          reason: 'remaining_puzzle_unsolvable',
+          candidateText: candidate.text,
         );
+        for (final blockedId in getBlockedUnsolvedWordIds(
+          state: trial,
+          metadata: metadata,
+          options: options,
+        )) {
+          logBlockedWord(blockedId);
+        }
       }
 
       if (chosen == null) {
@@ -262,7 +275,18 @@ List<WordAssignmentOption> resolveCompletedWordsAfterReconnect({
         moveComponent: moveComponent,
       );
 
-      accepted.add(chosen);
+      accepted.add(
+        WordAssignmentOption(
+          wordId: chosen.wordId,
+          reservedFinalCellIds: chosen.reservedFinalCellIds,
+          contributingFinalCellIds: chosen.contributingFinalCellIds,
+          contributingChunkIds: chosen.contributingChunkIds,
+          contributingComponentIds: chosen.contributingComponentIds,
+          assignmentType: chosen.assignmentType,
+          debugReason: chosen.debugReason,
+          groupedBoardCells: candidate.orderedBoardCells,
+        ),
+      );
       workingState = applyWordAssignmentToSolverState(
         state: workingState,
         assignment: chosen,
@@ -360,16 +384,16 @@ List<PuzzlePiece> animateSolvedClusters({
   var updated = pieces;
 
   for (final cluster in moveClusters) {
-    final reservedBoardCells = _boardCellsForReservedIds(
-      reservedCellIds: cluster.reservedCellIds,
+    final reservedBoardCells = _boardCellsForCluster(
+      cluster: cluster,
+      acceptedAssignments: acceptedAssignments,
       pieces: updated,
       metadata: metadata,
     );
 
-    final visualCells = expandToContributingComponentCells(
-      matchedCells: reservedBoardCells.keys,
-      pieces: updated,
-      playAreaBoard: buildPlayAreaLetterMap(updated),
+    logGrouping(
+      wordIds: cluster.assignmentWordIds,
+      reservedCellCount: reservedBoardCells.length,
     );
 
     final answers = cluster.assignmentWordIds
@@ -379,7 +403,7 @@ List<PuzzlePiece> animateSolvedClusters({
 
     final completedCluster = CompletedCluster(
       answers: answers,
-      cells: visualCells,
+      cells: reservedBoardCells,
     );
 
     updated = applyCompletedClusterGrouping(
@@ -389,6 +413,54 @@ List<PuzzlePiece> animateSolvedClusters({
   }
 
   return updated;
+}
+
+Map<BoardCellPosition, String> _boardCellsForCluster({
+  required MoveCluster cluster,
+  required List<WordAssignmentOption> acceptedAssignments,
+  required List<PuzzlePiece> pieces,
+  required PuzzleLayoutMetadata metadata,
+}) {
+  final cells = <BoardCellPosition, String>{};
+  final claimedPositions = <BoardCellPosition>{};
+
+  for (final wordId in cluster.assignmentWordIds) {
+    final assignment = acceptedAssignments.firstWhere(
+      (option) => option.wordId == wordId,
+    );
+
+    final grouped = assignment.groupedBoardCells;
+    if (grouped != null &&
+        grouped.length == assignment.reservedFinalCellIds.length) {
+      for (final boardCell in grouped) {
+        final position = BoardCellPosition(
+          row: boardCell.boardRow,
+          col: boardCell.boardCol,
+        );
+        if (claimedPositions.contains(position)) {
+          continue;
+        }
+        cells[position] = boardCell.letter;
+        claimedPositions.add(position);
+      }
+      continue;
+    }
+
+    final fallback = _boardCellsForReservedIds(
+      reservedCellIds: assignment.reservedFinalCellIds.toSet(),
+      pieces: pieces,
+      metadata: metadata,
+    );
+    for (final entry in fallback.entries) {
+      if (claimedPositions.contains(entry.key)) {
+        continue;
+      }
+      cells[entry.key] = entry.value;
+      claimedPositions.add(entry.key);
+    }
+  }
+
+  return cells;
 }
 
 Map<BoardCellPosition, String> _boardCellsForReservedIds({
