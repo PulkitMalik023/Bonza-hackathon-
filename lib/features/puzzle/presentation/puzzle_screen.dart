@@ -16,6 +16,8 @@ import '../data/models/puzzle_layout.dart';
 import '../data/repositories/hardcoded_puzzle_repository.dart';
 import '../data/repositories/puzzle_repository.dart';
 import '../domain/board_geometry.dart';
+import '../domain/board_cell_position.dart';
+import '../domain/puzzle_complete_ripple.dart';
 import '../domain/word_resolution/puzzle_layout_metadata.dart';
 import '../domain/word_resolution/puzzle_runtime_state.dart';
 import '../domain/word_resolution/word_resolution_logger.dart';
@@ -89,6 +91,8 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   Set<String> _hintHighlightedPieceIds = {};
   Timer? _hintClearTimer;
   int _resolutionStepCounter = 0;
+  BoardCellPosition? _puzzleRippleOrigin;
+  Completer<void>? _rippleCompleteCompleter;
 
   PuzzleLayout? get _currentLayout =>
       _layouts.isEmpty ? null : _layouts[_currentLayoutIndex];
@@ -446,6 +450,8 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     _lastEvaluatedPiecesSnapshot = null;
     _moveHistory.clear();
     _clearActiveHint();
+    _puzzleRippleOrigin = null;
+    _rippleCompleteCompleter = null;
   }
 
   void _onIntroComplete() {
@@ -547,10 +553,13 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       _lastEvaluatedPiecesSnapshot = null;
     }
 
-    _applyWordResolutionResult(result);
+    _applyWordResolutionResult(result, event: event);
   }
 
-  void _applyWordResolutionResult(WordResolutionResult result) {
+  void _applyWordResolutionResult(
+    WordResolutionResult result, {
+    PiecesChangeEvent? event,
+  }) {
     if (!result.hasChanges) {
       if (result.puzzleComplete && !_puzzleCompletionHandled) {
         PuzzleHaptics.puzzleCompleted();
@@ -574,6 +583,17 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
     final puzzleJustCompleted =
         result.puzzleComplete && !_puzzleCompletionHandled;
+    BoardCellPosition? rippleOrigin;
+    if (puzzleJustCompleted &&
+        event != null &&
+        _layoutMetadata != null) {
+      rippleOrigin = computeRippleOrigin(
+        event: event,
+        result: result,
+        metadata: _layoutMetadata!,
+        solvedAssignments: result.solvedAssignments,
+      );
+    }
 
     setState(() {
       _playPieces = result.pieces;
@@ -585,11 +605,22 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
         _puzzleCompletionHandled = true;
         _introAnimationPending = false;
         _interactionEnabled = false;
+        _puzzleRippleOrigin = rippleOrigin;
       }
     });
 
     if (puzzleJustCompleted) {
+      if (_puzzleRippleOrigin != null) {
+        _rippleCompleteCompleter = Completer<void>();
+      }
       _onPuzzleCompleted();
+    }
+  }
+
+  void _onPuzzleRippleComplete() {
+    final completer = _rippleCompleteCompleter;
+    if (completer != null && !completer.isCompleted) {
+      completer.complete();
     }
   }
 
@@ -604,7 +635,18 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       ),
     );
 
-    await Future<void>.delayed(const Duration(milliseconds: 500));
+    final rippleCompleter = _rippleCompleteCompleter;
+    if (_puzzleRippleOrigin != null && rippleCompleter != null) {
+      try {
+        await rippleCompleter.future.timeout(
+          const Duration(milliseconds: 1300),
+        );
+      } on TimeoutException {
+        // Proceed if ripple never reports completion.
+      }
+    } else {
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+    }
 
     if (!mounted) {
       return;
@@ -760,6 +802,8 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                         onDragEnd: _audioController.playTileDropSound,
                         interactionEnabled: _interactionEnabled,
                         wordCompletionBurstEnabled: !_puzzleCompletionHandled,
+                        puzzleRippleOrigin: _puzzleRippleOrigin,
+                        onPuzzleRippleComplete: _onPuzzleRippleComplete,
                         introAnimationEnabled:
                             _introAnimationPending &&
                             !_puzzleCompletionHandled &&

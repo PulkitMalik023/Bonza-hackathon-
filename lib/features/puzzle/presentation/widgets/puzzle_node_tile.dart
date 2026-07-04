@@ -22,6 +22,7 @@ class PuzzleNodeTile extends StatelessWidget {
     this.isHintHighlighted = false,
     this.isGhost = false,
     this.edgeMask = PuzzleTileEdgeMask.all,
+    this.rippleIntensity = 0,
   });
 
   final String character;
@@ -32,6 +33,7 @@ class PuzzleNodeTile extends StatelessWidget {
   final bool isHintHighlighted;
   final bool isGhost;
   final PuzzleTileEdgeMask edgeMask;
+  final double rippleIntensity;
 
   PuzzleTileVisualState get visualState {
     if (isGhost) {
@@ -92,6 +94,12 @@ class PuzzleNodeTile extends StatelessWidget {
     );
 
     if (state != PuzzleTileVisualState.dragging) {
+      if (rippleIntensity > 0) {
+        tile = Transform.scale(
+          scale: 1 + rippleIntensity * 0.05,
+          child: tile,
+        );
+      }
       return tile;
     }
 
@@ -205,6 +213,19 @@ class PuzzleNodeTile extends StatelessWidget {
                   ),
                 ),
               ),
+              if (rippleIntensity > 0)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: faceRadius,
+                        color: PuzzleTheme.yellow.withValues(
+                          alpha: 0.45 * rippleIntensity,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),

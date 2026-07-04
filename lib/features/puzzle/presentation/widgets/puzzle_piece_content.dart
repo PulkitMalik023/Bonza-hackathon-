@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/puzzle_theme.dart';
+import '../../domain/board_cell_position.dart';
 import '../../domain/puzzle_piece.dart';
 import 'puzzle_completed_group_seams.dart';
 import 'puzzle_node_tile.dart';
@@ -20,6 +21,7 @@ class PuzzlePieceContent extends StatelessWidget {
     this.isCompleted = false,
     this.isHintHighlighted = false,
     this.connectionSeamOpacity = 0,
+    this.rippleIntensityForCell,
   });
 
   final PuzzlePiece piece;
@@ -31,6 +33,7 @@ class PuzzlePieceContent extends StatelessWidget {
   final bool isCompleted;
   final bool isHintHighlighted;
   final double connectionSeamOpacity;
+  final double Function(BoardCellPosition boardCell)? rippleIntensityForCell;
 
   @override
   Widget build(BuildContext context) {
@@ -60,6 +63,13 @@ class PuzzlePieceContent extends StatelessWidget {
                 isCompleted: isCompleted && !isGhost,
                 isHintHighlighted: isHintHighlighted && !isGhost,
                 isGhost: isGhost,
+                rippleIntensity: rippleIntensityForCell?.call(
+                      BoardCellPosition(
+                        row: piece.anchorRow + cell.rowOffset,
+                        col: piece.anchorCol + cell.colOffset,
+                      ),
+                    ) ??
+                    0,
                 edgeMask: edgeMaskForCell(
                   rowOffset: cell.rowOffset,
                   colOffset: cell.colOffset,
