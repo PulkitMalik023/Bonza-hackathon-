@@ -1,5 +1,8 @@
+import '../../../../core/constants/board_constants.dart';
 import '../board_cell_position.dart';
+import '../puzzle_board_state.dart';
 import '../puzzle_piece.dart';
+import '../puzzle_solved_checker.dart';
 import 'puzzle_layout_metadata.dart';
 import 'word_resolution_logger.dart';
 import 'word_resolution_models.dart';
@@ -46,17 +49,26 @@ PuzzleRuntimeState rebuildRuntimeBoardState({
   required Set<String> solvedWordIds,
   required Set<String> reservedCellIds,
   required Map<String, SolvedAssignment> solvedAssignments,
+  int boardRows = BoardConstants.kPlayGridRows,
+  int boardCols = BoardConstants.kPlayGridCols,
 }) {
   final placedCellsByFinalId = <String, PlacedRuntimeCell>{};
   final boardCellMap = <BoardCellPosition, BoardCellEntry>{};
   final cellToComponentSeed = <String, String>{};
   final boardPositionDelta = _boardPositionDeltaFromActivePieces(
-    pieces: pieces,
+    pieces: activePlayAreaPieces(
+      pieces,
+      boardRows: boardRows,
+      boardCols: boardCols,
+    ),
     metadata: metadata,
   );
 
   for (final piece in pieces) {
     if (piece.isCompletedWordGroup) {
+      continue;
+    }
+    if (!isPieceOnBoard(piece, boardRows, boardCols) || isPieceAtSpawn(piece)) {
       continue;
     }
 
@@ -108,6 +120,9 @@ PuzzleRuntimeState rebuildRuntimeBoardState({
 
   for (final piece in pieces) {
     if (!piece.isCompletedWordGroup) {
+      continue;
+    }
+    if (!isPieceOnBoard(piece, boardRows, boardCols)) {
       continue;
     }
 

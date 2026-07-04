@@ -2,12 +2,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:jam_pro/features/puzzle/data/deconstructors/puzzle_deconstructor.dart';
 import 'package:jam_pro/features/puzzle/data/models/placed_word.dart';
 import 'package:jam_pro/features/puzzle/data/models/puzzle_layout.dart';
-import 'package:jam_pro/features/puzzle/domain/board_cell_position.dart';
-import 'package:jam_pro/features/puzzle/domain/piece_cell.dart';
 import 'package:jam_pro/features/puzzle/domain/puzzle_piece.dart';
 import 'package:jam_pro/features/puzzle/domain/word_resolution/candidate_word_scanner.dart';
 import 'package:jam_pro/features/puzzle/domain/word_resolution/puzzle_layout_metadata.dart';
 import 'package:jam_pro/features/puzzle/domain/word_resolution/puzzle_runtime_state.dart';
+
+import 'word_resolution_test_helpers.dart';
 
 PuzzleLayoutMetadata _forkMetadata() {
   final layout = PuzzleLayout.fromPlacedWords(const [
@@ -59,7 +59,7 @@ void main() {
     }
 
     final state = rebuildRuntimeBoardState(
-      pieces: pieces,
+      pieces: piecesMovedOnBoard(pieces),
       metadata: metadata,
       solvedWordIds: const {},
       reservedCellIds: const {},
@@ -89,7 +89,7 @@ void main() {
     );
 
     final state = rebuildRuntimeBoardState(
-      pieces: [piece],
+      pieces: [pieceMovedOnBoard(piece)],
       metadata: metadata,
       solvedWordIds: const {},
       reservedCellIds: const {},

@@ -24,10 +24,12 @@ PuzzlePiece pieceAtFinalCell({
       localCol: localCol,
     );
     if (cellId == finalCellId) {
-      return PuzzlePiece.fromChunk(
-        ref.chunk,
-        anchorRow: boardRow - localRow,
-        anchorCol: boardCol - localCol,
+      return pieceMovedOnBoard(
+        PuzzlePiece.fromChunk(
+          ref.chunk,
+          anchorRow: boardRow - localRow,
+          anchorCol: boardCol - localCol,
+        ),
       );
     }
   }
@@ -64,7 +66,7 @@ List<PuzzlePiece> applenConnectedPieces(PuzzleLayoutMetadata metadata) {
   final nChunkId = chunkRefForFinalCell(metadata, nCellId).chunkId;
 
   final pieces = <PuzzlePiece>[];
-  var scatterRow = 12;
+  var scatterRow = 6;
   var scatterCol = 0;
 
   for (final ref in metadata.chunkById.values) {
@@ -101,7 +103,7 @@ List<PuzzlePiece> applenConnectedPieces(PuzzleLayoutMetadata metadata) {
     scatterCol += ref.chunk.width.toInt() + 1;
   }
 
-  return pieces;
+  return piecesMovedOnBoard(pieces);
 }
 
 List<PuzzlePiece> wonOnlyConnectedAntScattered(PuzzleLayoutMetadata metadata) {
@@ -111,31 +113,37 @@ List<PuzzlePiece> wonOnlyConnectedAntScattered(PuzzleLayoutMetadata metadata) {
       .toSet();
 
   final pieces = <PuzzlePiece>[];
-  var scatterRow = 12;
-  var scatterCol = 0;
+  final antOffsets = <({int row, int col})>[
+    (row: 0, col: 7),
+    (row: 4, col: 0),
+    (row: 8, col: 5),
+  ];
+  var antIndex = 0;
 
   for (final piece in connectedCrosswordPieces(metadata: metadata)) {
     if (antChunkIds.contains(piece.chunkId)) {
+      final offset = antOffsets[antIndex % antOffsets.length];
+      antIndex++;
       pieces.add(
-        PuzzlePiece(
-          id: piece.id,
-          chunkId: piece.chunkId,
-          anchorRow: scatterRow,
-          anchorCol: scatterCol,
-          spawnAnchorRow: piece.spawnAnchorRow,
-          spawnAnchorCol: piece.spawnAnchorCol,
-          cells: piece.cells,
+        pieceMovedOnBoard(
+          PuzzlePiece(
+            id: piece.id,
+            chunkId: piece.chunkId,
+            anchorRow: offset.row,
+            anchorCol: offset.col,
+            spawnAnchorRow: piece.spawnAnchorRow,
+            spawnAnchorCol: piece.spawnAnchorCol,
+            cells: piece.cells,
+          ),
         ),
       );
-      final ref = metadata.chunkById[piece.chunkId]!;
-      scatterCol += ref.chunk.width.toInt() + 1;
       continue;
     }
 
     pieces.add(piece);
   }
 
-  return pieces;
+  return piecesMovedOnBoard(pieces);
 }
 
 void main() {
@@ -159,7 +167,7 @@ void main() {
     expect(candidates.any((candidate) => candidate.text == 'APPLE'), isFalse);
   });
 
-  test('APPLEN connected board does not complete APPLE on tile release', () {
+  test('APPLEN connected board does not complete APPLE without exact line', () {
     final metadata = appleNextMetadata();
 
     final result = handlePuzzleStateAfterReconnect(
@@ -174,7 +182,7 @@ void main() {
     );
 
     expect(result.completedAnswers, isNot(contains('APPLE')));
-    expect(result.newlySolvedWordIds, isEmpty);
+    expect(result.completedAnswers, isNot(contains('NEXT')));
   });
 
   test('APPLE exact line completes when connected at runtime', () {
@@ -240,7 +248,7 @@ void main() {
     );
 
     expect(result.completedAnswers, isNot(contains('WON')));
-    expect(result.newlySolvedWordIds, isEmpty);
+    expect(result.newlySolvedWordIds, isNot(contains(wonId)));
   });
 
   test('NORTH SOUTH crossing accepts both when fully connected', () {

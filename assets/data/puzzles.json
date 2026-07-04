@@ -1,52 +1,88 @@
 [
-  { "id": 1, "category": "Directions", "words": ["NORTH", "SOUTH", "EAST", "WEST"], "enabled": true },
-  { "id": 2, "category": "Cutlery", "words": ["SPOON", "FORK", "KNIFE"], "enabled": true },
-  { "id": 3, "category": "Flowers", "words": ["ROSE", "DAISY", "TULIP", "LILY"], "enabled": false },
-  { "id": 4, "category": "Fruits", "words": ["APPLE", "MANGO", "GRAPE", "BANANA"], "enabled": true },
-  { "id": 5, "category": "Colors", "words": ["RED", "BLUE", "GREEN", "PINK"], "enabled": true },
-  { "id": 6, "category": "Body Parts", "words": ["HAND", "LEG", "EYE", "NOSE"], "enabled": true },
-  { "id": 7, "category": "Weather", "words": ["RAIN", "WIND", "CLOUD", "STORM"], "enabled": false },
-  { "id": 8, "category": "Transport", "words": ["CAR", "TRAIN", "BUS", "VAN"], "enabled": false },
-  { "id": 9, "category": "Birds", "words": ["CROW", "SPARROW", "EAGLE", "DOVE"], "enabled": true },
-  { "id": 10, "category": "Animals", "words": ["LION", "TIGER", "BEAR", "WOLF"], "enabled": false },
-  { "id": 11, "category": "Vegetables", "words": ["ONION", "POTATO", "CARROT", "PEA"], "enabled": true },
-  { "id": 12, "category": "Drinks", "words": ["WATER", "JUICE", "TEA", "MILK"], "enabled": true },
-  { "id": 13, "category": "School", "words": ["BOOK", "PEN", "RULER", "BAG"], "enabled": false },
-  { "id": 14, "category": "Furniture", "words": ["TABLE", "CHAIR", "SOFA", "BED"], "enabled": false },
-  { "id": 15, "category": "Clothes", "words": ["SHIRT", "PANTS", "COAT", "CAP"], "enabled": true },
-  { "id": 16, "category": "Shapes", "words": ["CIRCLE", "SQUARE", "OVAL", "STAR"], "enabled": true },
-  { "id": 17, "category": "Jobs", "words": ["DOCTOR", "TEACHER", "PILOT", "CHEF"], "enabled": true },
-  { "id": 18, "category": "Sports", "words": ["CRICKET", "TENNIS", "GOLF", "RACE"], "enabled": false },
-  { "id": 19, "category": "Planets", "words": ["MARS", "VENUS", "JUPITER", "SATURN", "NEPTUNE"], "enabled": true },
-  { "id": 20, "category": "Sea Life", "words": ["FISH", "SHARK", "WHALE", "CRAB"], "enabled": false },
-  { "id": 21, "category": "Insects", "words": ["ANT", "BEE", "MOTH", "WASP"], "enabled": false },
-  { "id": 22, "category": "Kitchen", "words": ["PLATE", "CUP", "PAN", "BOWL"], "enabled": false },
-  { "id": 23, "category": "Emotions", "words": ["HAPPY", "SAD", "ANGRY", "CALM"], "enabled": true },
-  { "id": 24, "category": "Nature", "words": ["TREE", "RIVER", "HILL", "LEAF"], "enabled": true },
-  { "id": 25, "category": "Desserts", "words": ["CAKE", "PIE", "CANDY", "COOKIE"], "enabled": true },
-  { "id": 26, "category": "Months", "words": ["MARCH", "APRIL", "JUNE", "MAY"], "enabled": false },
-  { "id": 27, "category": "Days", "words": ["MONDAY", "TUESDAY", "FRIDAY", "SUNDAY"], "enabled": true },
-  { "id": 28, "category": "Music", "words": ["SONG", "DRUM", "FLUTE", "PIANO"], "enabled": false },
-  { "id": 29, "category": "Tools", "words": ["HAMMER", "NAIL", "DRILL", "SAW"], "enabled": true },
-  { "id": 30, "category": "Bathroom", "words": ["SOAP", "TOWEL", "BRUSH", "MIRROR"], "enabled": false },
-  { "id": 31, "category": "Computer", "words": ["MOUSE", "SCREEN", "KEY", "CABLE"], "enabled": true },
-  { "id": 32, "category": "Phone", "words": ["CALL", "APP", "CHAT", "RING"], "enabled": false },
-  { "id": 33, "category": "Festival", "words": ["HOLI", "DIWALI", "EID", "XMAS"], "enabled": true },
-  { "id": 34, "category": "Snacks", "words": ["CHIPS", "NACHO", "POPCORN", "TOAST"], "enabled": true },
-  { "id": 35, "category": "Breakfast", "words": ["TOAST", "OMELET", "MILK", "CORN"], "enabled": true },
-  { "id": 36, "category": "Farm", "words": ["COW", "GOAT", "HEN", "HORSE"], "enabled": false },
-  { "id": 37, "category": "Jungle", "words": ["MONKEY", "SNAKE", "ZEBRA", "PANDA"], "enabled": true },
-  { "id": 38, "category": "Winter", "words": ["SNOW", "COAT", "GLOVE", "COLD"], "enabled": false },
-  { "id": 39, "category": "Summer", "words": ["SUN", "HEAT", "MANGO", "BEACH"], "enabled": false },
-  { "id": 40, "category": "Travel", "words": ["HOTEL", "MAP", "TICKET", "TRAIN"], "enabled": true },
-  { "id": 41, "category": "Garden", "words": ["PLANT", "POT", "SOIL", "SEED"], "enabled": false },
-  { "id": 42, "category": "Office", "words": ["DESK", "FILE", "CHAIR", "STAMP"], "enabled": true },
-  { "id": 43, "category": "Cleaning", "words": ["MOP", "BROOM", "SOAP", "BUCKET"], "enabled": true },
-  { "id": 44, "category": "Hospital", "words": ["NURSE", "WARD", "MASK", "PULSE"], "enabled": false },
-  { "id": 45, "category": "Market", "words": ["SHOP", "BILL", "BAG", "CART"], "enabled": false },
-  { "id": 46, "category": "Party", "words": ["MUSIC", "CAKE", "DANCE", "LIGHT"], "enabled": false },
-  { "id": 47, "category": "Art", "words": ["PAINT", "BRUSH", "COLOR", "CANVAS"], "enabled": true },
-  { "id": 48, "category": "Reading", "words": ["BOOK", "STORY", "PAGE", "NOVEL"], "enabled": false },
-  { "id": 49, "category": "City", "words": ["ROAD", "PARK", "MALL", "METRO"], "enabled": false },
-  { "id": 50, "category": "Space", "words": ["STAR", "MOON", "COMET", "ORBIT"], "enabled": true }
+  {
+    "id": 1,
+    "category": "Fruit Salad",
+    "words": [
+      "BANANA",
+      "ORANGE",
+      "APPLE"
+    ],
+    "enabled": true
+  },
+  {
+    "id": 2,
+    "category": "Compass",
+    "words": [
+      "NORTH",
+      "SOUTH",
+      "EAST",
+      "WEST"
+    ],
+    "enabled": true
+  },
+  {
+    "id": 3,
+    "category": "Flowers",
+    "words": [
+      "DAFFODIL",
+      "DAISY",
+      "ROSE",
+      "TULIP"
+    ],
+    "enabled": true
+  },
+  {
+    "id": 4,
+    "category": "Planets",
+    "words": [
+      "VENUS",
+      "JUPITER",
+      "NEPTUNE",
+      "SATURN",
+      "MARS"
+    ],
+    "enabled": true
+  },
+  {
+    "id": 5,
+    "category": "Battle of Hands",
+    "words": [
+      "SCISSORS",
+      "ROCK",
+      "PAPER"
+    ],
+    "enabled": false
+  },
+  {
+    "id": 6,
+    "category": "Cutlery",
+    "words": [
+      "SPOON",
+      "FORK",
+      "KNIFE"
+    ],
+    "enabled": false
+  },
+  {
+    "id": 7,
+    "category": "Can Be Broken",
+    "words": [
+      "HEART",
+      "RECORD",
+      "PROMISE",
+      "WINDOW",
+      "RULE"
+    ],
+    "enabled": true
+  },
+  {
+    "id": 8,
+    "category": "Nuts",
+    "words": [
+      "CASHEW",
+      "ALMOND",
+      "PEANUT"
+    ],
+    "enabled": true
+  }
 ]

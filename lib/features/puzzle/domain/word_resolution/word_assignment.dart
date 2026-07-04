@@ -1,4 +1,5 @@
 import '../../../../core/constants/puzzle_ui_flags.dart';
+import '../board_cell_position.dart';
 import 'puzzle_layout_metadata.dart';
 import 'puzzle_runtime_state.dart';
 import 'word_resolution_logger.dart';
@@ -78,18 +79,9 @@ PlacedRuntimeCell? resolveCellForWord({
   required String wordId,
   required PuzzleRuntimeState state,
   required PuzzleLayoutMetadata metadata,
+  bool requireLayoutPosition = true,
 }) {
-  final active = state.placedCellsByFinalId[cellId];
-  if (active != null) {
-    return active;
-  }
-
-  final layoutCell = metadata.finalCellById[cellId];
-  if (layoutCell == null) {
-    return null;
-  }
-
-  if (!isSharedIntersectionCell(
+  if (isCellBlockedByReservation(
     cellId: cellId,
     wordId: wordId,
     state: state,
@@ -98,8 +90,78 @@ PlacedRuntimeCell? resolveCellForWord({
     return null;
   }
 
+  final layoutCell = metadata.finalCellById[cellId];
+  if (layoutCell == null) {
+    return null;
+  }
+
+  final layoutPosition = BoardCellPosition(
+    row: layoutCell.row,
+    col: layoutCell.col,
+  );
+
+  if (requireLayoutPosition) {
+    final boardEntry = state.boardCellMap[layoutPosition];
+    if (boardEntry != null &&
+        boardEntry.letter.toUpperCase() == layoutCell.letter.toUpperCase()) {
+      return PlacedRuntimeCell(
+        finalCellId: cellId,
+        letter: boardEntry.letter,
+        boardRow: layoutPosition.row,
+        boardCol: layoutPosition.col,
+        chunkId: boardEntry.chunkId,
+        componentId: boardEntry.componentId,
+      );
+    }
+  }
+
+  final active = state.placedCellsByFinalId[cellId];
+  if (active != null) {
+    if (active.letter.toUpperCase() != layoutCell.letter.toUpperCase()) {
+      return null;
+    }
+    if (requireLayoutPosition &&
+        (active.boardRow != layoutCell.row ||
+            active.boardCol != layoutCell.col)) {
+      return null;
+    }
+    return active;
+  }
+
   for (final entry in state.boardCellMap.entries) {
     if (entry.value.finalCellId != cellId) {
+      continue;
+    }
+
+    if (entry.value.letter.toUpperCase() != layoutCell.letter.toUpperCase()) {
+      continue;
+    }
+
+    if (requireLayoutPosition &&
+        (entry.key.row != layoutCell.row || entry.key.col != layoutCell.col)) {
+      continue;
+    }
+
+    return PlacedRuntimeCell(
+      finalCellId: cellId,
+      letter: entry.value.letter,
+      boardRow: entry.key.row,
+      boardCol: entry.key.col,
+      chunkId: entry.value.chunkId,
+      componentId: entry.value.componentId,
+    );
+  }
+
+  if (!requireLayoutPosition) {
+    return null;
+  }
+
+  for (final entry in state.boardCellMap.entries) {
+    if (entry.key.row != layoutCell.row || entry.key.col != layoutCell.col) {
+      continue;
+    }
+
+    if (entry.value.letter.toUpperCase() != layoutCell.letter.toUpperCase()) {
       continue;
     }
 
@@ -339,6 +401,7 @@ bool canWordBeSatisfiedFromBoardInventory({
       wordId: wordId,
       state: state,
       metadata: metadata,
+      requireLayoutPosition: false,
     );
     if (layoutCell == null || placed == null) {
       logInventoryFail(wordId, 'cell_missing cellId=$cellId');

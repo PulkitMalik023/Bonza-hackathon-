@@ -1,4 +1,5 @@
 import '../../domain/board_cell_position.dart';
+import 'chunk_signature.dart';
 import '../models/deconstructed_puzzle.dart';
 import '../models/placed_word.dart';
 import '../models/puzzle_layout.dart';
@@ -12,8 +13,25 @@ class DeconstructionQualityValidator {
     required PuzzleLayout layout,
     required DeconstructedPuzzle deconstructed,
   }) {
-    return !hasSingletonAndMultiCellLetterConflict(deconstructed) &&
+    return !hasSingletonChunks(deconstructed) &&
+        !hasDuplicateChunkSignatures(deconstructed) &&
+        !hasSingletonAndMultiCellLetterConflict(deconstructed) &&
         !hasCrossingCellsInSingletonChunks(layout, deconstructed);
+  }
+
+  bool hasSingletonChunks(DeconstructedPuzzle deconstructed) {
+    return deconstructed.chunks.any((chunk) => chunk.solvedCells.length == 1);
+  }
+
+  bool hasDuplicateChunkSignatures(DeconstructedPuzzle deconstructed) {
+    final seen = <String>{};
+    for (final chunk in deconstructed.chunks) {
+      final signature = signatureFromChunk(chunk);
+      if (!seen.add(signature)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /// Rule 1: if a letter appears in any multi-cell chunk, it must not also

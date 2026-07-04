@@ -59,6 +59,7 @@ flutter:
 
   assets:
     - assets/data/puzzles.json
+    - assets/data/puzzle_definitions.json
     - assets/icons/
     - assets/sounds/
 

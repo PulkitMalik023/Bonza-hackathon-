@@ -101,7 +101,6 @@ double _maxBubbleDistance({required int rows, required int cols}) {
     return 1;
   }
 
-  final centerCol = (cols - 1) / 2.0;
   var maxDistance = 1.0;
 
   for (var row = 0; row < rows; row++) {

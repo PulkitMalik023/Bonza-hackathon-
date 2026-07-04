@@ -1,6 +1,7 @@
 import '../board_cell_position.dart';
 import '../completed_cluster_builder.dart';
 import '../completed_word_grouper.dart';
+import '../puzzle_board_state.dart';
 import '../puzzle_piece.dart';
 import 'candidate_word_scanner.dart';
 import 'puzzle_layout_metadata.dart';
@@ -9,6 +10,8 @@ import 'puzzle_solvability_solver.dart';
 import 'word_assignment.dart';
 import 'word_resolution_logger.dart';
 import 'word_resolution_models.dart';
+
+const _maxConnectedLineResolutionIterations = 4;
 
 WordResolutionResult runInitialPuzzleResolution({
   required List<PuzzlePiece> pieces,
@@ -24,25 +27,9 @@ WordResolutionResult runInitialPuzzleResolution({
     reserved: reservedCellIds,
   );
 
-  final state = rebuildRuntimeBoardState(
+  return _resolveAndApplyConnectedLines(
     pieces: pieces,
     metadata: metadata,
-    solvedWordIds: solvedWordIds,
-    reservedCellIds: reservedCellIds,
-    solvedAssignments: solvedAssignments,
-  );
-
-  final candidates = scanCandidateWordsForWholeBoard(
-    state: state,
-    metadata: metadata,
-  );
-
-  return _resolveAndApply(
-    pieces: pieces,
-    metadata: metadata,
-    state: state,
-    candidates: candidates,
-    affectedComponentIds: state.componentsById.keys.toSet(),
     solvedWordIds: solvedWordIds,
     reservedCellIds: reservedCellIds,
     solvedAssignments: solvedAssignments,
@@ -64,105 +51,80 @@ WordResolutionResult handlePuzzleStateAfterReconnect({
     reserved: reservedCellIds,
   );
 
-  final state = rebuildRuntimeBoardState(
+  return _resolveAndApplyConnectedLines(
     pieces: pieces,
     metadata: metadata,
-    solvedWordIds: solvedWordIds,
-    reservedCellIds: reservedCellIds,
-    solvedAssignments: solvedAssignments,
-  );
-
-  final affectedComponentIds = getAffectedComponentsAfterReconnect(
-    movedChunkIds: movedChunkIds,
-    state: state,
-  );
-
-  final candidates = scanCandidateWordsForAffectedComponents(
-    affectedComponentIds: affectedComponentIds,
-    state: state,
-    metadata: metadata,
-  );
-
-  return _resolveAndApply(
-    pieces: pieces,
-    metadata: metadata,
-    state: state,
-    candidates: candidates,
-    affectedComponentIds: affectedComponentIds,
     solvedWordIds: solvedWordIds,
     reservedCellIds: reservedCellIds,
     solvedAssignments: solvedAssignments,
   );
 }
 
-WordResolutionResult _resolveAndApply({
+WordResolutionResult _resolveAndApplyConnectedLines({
   required List<PuzzlePiece> pieces,
   required PuzzleLayoutMetadata metadata,
-  required PuzzleRuntimeState state,
-  required List<CandidateWordInstance> candidates,
-  required Set<String> affectedComponentIds,
   required Set<String> solvedWordIds,
   required Set<String> reservedCellIds,
   required Map<String, SolvedAssignment> solvedAssignments,
 }) {
-  final accepted = resolveCompletedWordsAfterReconnect(
-    candidateWordInstances: candidates,
-    affectedComponentIds: affectedComponentIds,
-    state: state,
-    metadata: metadata,
-  );
-
-  if (accepted.isEmpty) {
-    final puzzleComplete = checkAndHandlePuzzleCompleted(
-      solvedWordIds: solvedWordIds,
-      metadata: metadata,
-    );
-    logSolveState(solvedWordIds, reservedCellIds);
-    return WordResolutionResult(
-      pieces: pieces,
-      solvedWordIds: solvedWordIds,
-      reservedCellIds: reservedCellIds,
-      solvedAssignments: solvedAssignments,
-      newlySolvedWordIds: const {},
-      puzzleComplete: puzzleComplete,
-      completedAnswers: completedAnswersFromSolvedWordIds(
-        solvedWordIds,
-        metadata,
-      ),
-    );
-  }
-
-  final moveClusters = groupAcceptedAssignmentsIntoMoveClusters(
-    acceptedAssignments: accepted,
-    state: state,
-  );
-
   var updatedPieces = pieces;
   var updatedSolvedWordIds = {...solvedWordIds};
   var updatedReservedCellIds = {...reservedCellIds};
   var updatedAssignments = Map<String, SolvedAssignment>.from(solvedAssignments);
   final newlySolved = <String>{};
 
-  for (final cluster in moveClusters) {
-    updatedPieces = animateSolvedClusters(
-      moveClusters: [cluster],
+  for (var iteration = 0;
+      iteration < _maxConnectedLineResolutionIterations;
+      iteration++) {
+    final state = rebuildRuntimeBoardState(
       pieces: updatedPieces,
       metadata: metadata,
-      acceptedAssignments: accepted,
+      solvedWordIds: updatedSolvedWordIds,
+      reservedCellIds: updatedReservedCellIds,
+      solvedAssignments: updatedAssignments,
     );
 
-    for (final wordId in cluster.assignmentWordIds) {
-      updatedSolvedWordIds.add(wordId);
-      newlySolved.add(wordId);
-      updatedReservedCellIds.addAll(cluster.reservedCellIds);
-      final assignment = accepted.firstWhere(
-        (option) => option.wordId == wordId,
+    final candidates = scanCandidateWordsForWholeBoard(
+      state: state,
+      metadata: metadata,
+    );
+
+    final accepted = resolveAcceptedConnectedLineWords(
+      candidates: candidates,
+      state: state,
+      metadata: metadata,
+    );
+
+    if (accepted.isEmpty) {
+      break;
+    }
+
+    final moveClusters = groupAcceptedAssignmentsIntoMoveClusters(
+      acceptedAssignments: accepted,
+      state: state,
+    );
+
+    for (final cluster in moveClusters) {
+      updatedPieces = animateSolvedClusters(
+        moveClusters: [cluster],
+        pieces: updatedPieces,
+        metadata: metadata,
+        acceptedAssignments: accepted,
       );
-      updatedAssignments[wordId] = SolvedAssignment(
-        wordId: wordId,
-        assignedCellIds: assignment.reservedFinalCellIds.toSet(),
-        moveComponentId: cluster.moveComponentId,
-      );
+
+      for (final wordId in cluster.assignmentWordIds) {
+        updatedSolvedWordIds.add(wordId);
+        newlySolved.add(wordId);
+        updatedReservedCellIds.addAll(cluster.reservedCellIds);
+        final assignment = accepted.firstWhere(
+          (option) => option.wordId == wordId,
+        );
+        updatedAssignments[wordId] = SolvedAssignment(
+          wordId: wordId,
+          assignedCellIds: assignment.reservedFinalCellIds.toSet(),
+          moveComponentId: cluster.moveComponentId,
+        );
+      }
     }
   }
 
@@ -185,6 +147,88 @@ WordResolutionResult _resolveAndApply({
       metadata,
     ),
   );
+}
+
+List<WordAssignmentOption> resolveAcceptedConnectedLineWords({
+  required List<CandidateWordInstance> candidates,
+  required PuzzleRuntimeState state,
+  required PuzzleLayoutMetadata metadata,
+}) {
+  if (candidates.isEmpty) {
+    return const [];
+  }
+
+  final sortedCandidates = [...candidates]
+    ..sort((a, b) => b.text.length.compareTo(a.text.length));
+
+  final options = WordResolutionOptions(
+    candidateWordInstances: sortedCandidates,
+  );
+
+  final accepted = <WordAssignmentOption>[];
+  var workingState = state.clone();
+
+  for (final candidate in sortedCandidates) {
+    if (candidate.text.length < 2) {
+      continue;
+    }
+
+    if (!metadata.allTargetTexts.contains(candidate.text.toUpperCase())) {
+      continue;
+    }
+
+    final matchedWordIds = getTargetWordIdsMatchingText(candidate.text, metadata);
+
+    for (final wordId in matchedWordIds) {
+      if (workingState.solvedWordIds.contains(wordId)) {
+        continue;
+      }
+
+      final matchingAssignments = assignmentsForCandidate(
+        wordId: wordId,
+        candidate: candidate,
+        state: workingState,
+        metadata: metadata,
+        options: options,
+      );
+
+      if (matchingAssignments.isEmpty) {
+        continue;
+      }
+
+      final chosen = matchingAssignments.first;
+      final moveComponent = chosen.contributingComponentIds.isNotEmpty
+          ? chosen.contributingComponentIds.first
+          : 'cmp_unknown';
+
+      logCandidateAccepted(
+        candidateText: candidate.text,
+        wordId: wordId,
+        assignmentType: chosen.assignmentType,
+        moveComponent: moveComponent,
+      );
+
+      final acceptedAssignment = WordAssignmentOption(
+        wordId: chosen.wordId,
+        reservedFinalCellIds: chosen.reservedFinalCellIds,
+        contributingFinalCellIds: chosen.contributingFinalCellIds,
+        contributingChunkIds: chosen.contributingChunkIds,
+        contributingComponentIds: chosen.contributingComponentIds,
+        assignmentType: chosen.assignmentType,
+        debugReason: chosen.debugReason,
+        groupedBoardCells: candidate.orderedBoardCells,
+      );
+
+      accepted.add(acceptedAssignment);
+      workingState = applyWordAssignmentToSolverState(
+        state: workingState,
+        assignment: chosen,
+        metadata: metadata,
+      );
+    }
+  }
+
+  return accepted;
 }
 
 List<WordAssignmentOption> resolveCompletedWordsAfterReconnect({
@@ -324,17 +368,29 @@ List<MoveCluster> groupAcceptedAssignmentsIntoMoveClusters({
     }
   }
 
+  String clusterKeyFor(WordAssignmentOption assignment) {
+    if (assignment.contributingComponentIds.isNotEmpty) {
+      return assignment.contributingComponentIds.first;
+    }
+    return 'word_${assignment.wordId}';
+  }
+
   for (var index = 0; index < acceptedAssignments.length; index++) {
     final current = acceptedAssignments[index];
+    final currentKey = clusterKeyFor(current);
     final currentComponents = current.contributingComponentIds.toSet();
+    final currentCells = current.reservedFinalCellIds.toSet();
+
     for (var other = index + 1; other < acceptedAssignments.length; other++) {
+      final otherAssignment = acceptedAssignments[other];
+      final otherKey = clusterKeyFor(otherAssignment);
       final otherComponents =
-          acceptedAssignments[other].contributingComponentIds.toSet();
-      if (currentComponents.intersection(otherComponents).isNotEmpty) {
-        union(
-          currentComponents.first,
-          otherComponents.first,
-        );
+          otherAssignment.contributingComponentIds.toSet();
+      final otherCells = otherAssignment.reservedFinalCellIds.toSet();
+
+      if (currentComponents.intersection(otherComponents).isNotEmpty ||
+          currentCells.intersection(otherCells).isNotEmpty) {
+        union(currentKey, otherKey);
       }
     }
   }
@@ -342,9 +398,7 @@ List<MoveCluster> groupAcceptedAssignmentsIntoMoveClusters({
   final grouped = <String, MoveCluster>{};
 
   for (final assignment in acceptedAssignments) {
-    final componentId = assignment.contributingComponentIds.isNotEmpty
-        ? find(assignment.contributingComponentIds.first)
-        : 'cmp_isolated';
+    final componentId = find(clusterKeyFor(assignment));
 
     final existing = grouped[componentId];
     grouped[componentId] = MoveCluster(
@@ -460,7 +514,25 @@ Map<BoardCellPosition, String> _boardCellsForCluster({
     }
   }
 
-  return cells;
+  if (cells.isEmpty) {
+    return cells;
+  }
+
+  final playAreaBoard = buildPlayAreaLetterMap(pieces);
+  final chunkExpanded = expandToContributingComponentCells(
+    matchedCells: cells.keys,
+    pieces: pieces,
+    playAreaBoard: playAreaBoard,
+  );
+  final connected = getConnectedPlayAreaCells(
+    seedCells: chunkExpanded.keys.toSet(),
+    playAreaBoard: playAreaBoard,
+  );
+
+  return {
+    for (final position in connected)
+      if (playAreaBoard[position] != null) position: playAreaBoard[position]!,
+  };
 }
 
 Map<BoardCellPosition, String> _boardCellsForReservedIds({

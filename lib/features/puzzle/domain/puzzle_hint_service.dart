@@ -1,5 +1,4 @@
 import '../data/models/puzzle_chunk.dart';
-import 'board_cell_position.dart';
 import 'puzzle_piece.dart';
 import 'word_resolution/puzzle_layout_metadata.dart';
 import 'word_resolution/puzzle_runtime_state.dart';

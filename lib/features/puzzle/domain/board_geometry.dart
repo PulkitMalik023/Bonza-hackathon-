@@ -4,7 +4,6 @@ import 'dart:ui';
 import '../../../core/constants/board_constants.dart';
 import 'board_cell_position.dart';
 import 'grid_layout.dart';
-import 'piece_cell.dart';
 import 'puzzle_piece.dart';
 
 /// Single source of truth for board cell size, dimensions, and pixel mapping.

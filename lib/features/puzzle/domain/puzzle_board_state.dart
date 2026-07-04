@@ -1,7 +1,9 @@
+import '../../../core/constants/board_constants.dart';
 import '../data/models/placed_word.dart';
 import 'board_cell_position.dart';
 import 'board_line_word_detector.dart';
 import 'puzzle_piece.dart';
+import 'puzzle_solved_checker.dart';
 
 class PiecesChangeEvent {
   const PiecesChangeEvent({
@@ -26,6 +28,19 @@ bool isPieceAtSpawn(PuzzlePiece piece) {
       piece.anchorCol == piece.spawnAnchorCol;
 }
 
+List<PuzzlePiece> activePlayAreaPieces(
+  List<PuzzlePiece> pieces, {
+  int boardRows = BoardConstants.kPlayGridRows,
+  int boardCols = BoardConstants.kPlayGridCols,
+}) {
+  return [
+    for (final piece in pieces)
+      if (isPieceOnBoard(piece, boardRows, boardCols) &&
+          (piece.isCompletedWordGroup || !isPieceAtSpawn(piece)))
+        piece,
+  ];
+}
+
 Map<BoardCellPosition, String> buildBoardLetterMap(List<PuzzlePiece> pieces) {
   final board = <BoardCellPosition, String>{};
 
@@ -42,8 +57,18 @@ Map<BoardCellPosition, String> buildBoardLetterMap(List<PuzzlePiece> pieces) {
   return board;
 }
 
-Map<BoardCellPosition, String> buildPlayAreaLetterMap(List<PuzzlePiece> pieces) {
-  return buildBoardLetterMap(pieces);
+Map<BoardCellPosition, String> buildPlayAreaLetterMap(
+  List<PuzzlePiece> pieces, {
+  int boardRows = BoardConstants.kPlayGridRows,
+  int boardCols = BoardConstants.kPlayGridCols,
+}) {
+  return buildBoardLetterMap(
+    activePlayAreaPieces(
+      pieces,
+      boardRows: boardRows,
+      boardCols: boardCols,
+    ),
+  );
 }
 
 Set<BoardCellPosition> getAffectedCellsForPiece({

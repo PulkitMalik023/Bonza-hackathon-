@@ -32,7 +32,6 @@ class ChunkTrayLayoutResult {
 
 class ChunkTrayLayoutService {
   static const _colGap = 1;
-  static const _rowGap = 1;
 
   ChunkTrayLayoutResult compute({
     required int boardRows,

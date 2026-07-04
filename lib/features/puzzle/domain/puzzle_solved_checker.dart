@@ -3,7 +3,6 @@ import '../data/models/puzzle_layout.dart';
 import 'board_cell_position.dart';
 import 'puzzle_board_state.dart';
 import 'puzzle_piece.dart';
-import 'word_completion.dart';
 
 class PuzzleSolvedStatus {
   const PuzzleSolvedStatus({

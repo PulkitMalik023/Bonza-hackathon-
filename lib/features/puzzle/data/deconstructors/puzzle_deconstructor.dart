@@ -7,7 +7,6 @@ import '../models/puzzle_layout.dart';
 
 /// Deconstructs a solved [PuzzleLayout] into connected draggable chunks.
 class PuzzleDeconstructor {
-  static const _minChunkSize = 2;
   static const _maxChunkSize = 3;
 
   DeconstructedPuzzle build(PuzzleLayout layout) {

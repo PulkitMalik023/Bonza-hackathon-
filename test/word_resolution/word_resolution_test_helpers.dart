@@ -2,10 +2,10 @@ import 'package:jam_pro/features/puzzle/data/deconstructors/puzzle_deconstructor
 import 'package:jam_pro/features/puzzle/data/generators/puzzle_layout_generator.dart';
 import 'package:jam_pro/features/puzzle/data/models/placed_word.dart';
 import 'package:jam_pro/features/puzzle/data/models/puzzle_layout.dart';
+import 'package:jam_pro/core/constants/board_constants.dart';
 import 'package:jam_pro/features/puzzle/domain/puzzle_piece.dart';
 import 'package:jam_pro/features/puzzle/domain/piece_cell.dart';
 import 'package:jam_pro/features/puzzle/domain/word_resolution/puzzle_layout_metadata.dart';
-import 'package:jam_pro/features/puzzle/domain/word_resolution/puzzle_runtime_state.dart';
 import 'package:jam_pro/features/puzzle/domain/word_resolution/word_resolution_models.dart';
 import 'package:jam_pro/features/puzzle/domain/word_resolution/word_resolution_service.dart';
 
@@ -18,16 +18,44 @@ PuzzleLayoutMetadata metadataForWords(List<PlacedWord> words) {
   );
 }
 
+const _testTraySpawnRow = 14;
+const _testTraySpawnCol = 0;
+
+PuzzlePiece pieceMovedOnBoard(
+  PuzzlePiece piece, {
+  int spawnAnchorRow = _testTraySpawnRow,
+  int spawnAnchorCol = _testTraySpawnCol,
+}) {
+  return PuzzlePiece(
+    id: piece.id,
+    chunkId: piece.chunkId,
+    anchorRow: piece.anchorRow,
+    anchorCol: piece.anchorCol,
+    spawnAnchorRow: spawnAnchorRow,
+    spawnAnchorCol: spawnAnchorCol,
+    cells: piece.cells,
+    isCompletedWordGroup: piece.isCompletedWordGroup,
+    completedWordKey: piece.completedWordKey,
+    completedAnswers: piece.completedAnswers,
+  );
+}
+
+List<PuzzlePiece> piecesMovedOnBoard(List<PuzzlePiece> pieces) {
+  return pieces.map(pieceMovedOnBoard).toList();
+}
+
 List<PuzzlePiece> piecesAtLayoutPositions(PuzzleLayoutMetadata metadata) {
-  return metadata.chunkById.values
-      .map(
-        (ref) => PuzzlePiece.fromChunk(
-          ref.chunk,
-          anchorRow: ref.chunk.solvedMinRow,
-          anchorCol: ref.chunk.solvedMinCol,
-        ),
-      )
-      .toList();
+  return piecesMovedOnBoard(
+    metadata.chunkById.values
+        .map(
+          (ref) => PuzzlePiece.fromChunk(
+            ref.chunk,
+            anchorRow: ref.chunk.solvedMinRow,
+            anchorCol: ref.chunk.solvedMinCol,
+          ),
+        )
+        .toList(),
+  );
 }
 
 List<PuzzlePiece> connectedPiecesAtRow({
@@ -47,12 +75,12 @@ List<PuzzlePiece> connectedPiecesAtRow({
     );
     col += chunk.width;
   }
-  return pieces;
+  return piecesMovedOnBoard(pieces);
 }
 
 List<PuzzlePiece> connectedCrosswordPieces({
   required PuzzleLayoutMetadata metadata,
-  int boardRowOffset = 1,
+  int boardRowOffset = 0,
   int boardColOffset = 0,
 }) {
   final pieces = <PuzzlePiece>[];
@@ -74,7 +102,58 @@ List<PuzzlePiece> connectedCrosswordPieces({
     );
   }
 
-  return pieces;
+  return piecesMovedOnBoard(pieces);
+}
+
+List<PuzzlePiece> fruitSaladBananaLineAtRow(
+  PuzzleLayoutMetadata metadata, {
+  required int row,
+  int startCol = 0,
+}) {
+  const layoutBananaRow = 2;
+  const layoutBananaStartCol = 0;
+  final rowOffset = row - layoutBananaRow;
+  final colOffset = startCol - layoutBananaStartCol;
+
+  return piecesMovedOnBoard([
+    for (final chunkId in chunkIdsCoveringWord(metadata, 'BANANA'))
+      if (metadata.chunkById[chunkId] != null)
+        PuzzlePiece.fromChunk(
+          metadata.chunkById[chunkId]!.chunk,
+          anchorRow:
+              metadata.chunkById[chunkId]!.chunk.solvedMinRow + rowOffset,
+          anchorCol:
+              metadata.chunkById[chunkId]!.chunk.solvedMinCol + colOffset,
+        ),
+  ]);
+}
+
+List<PuzzlePiece> fruitSaladGappedBananaLineAtRow(
+  PuzzleLayoutMetadata metadata, {
+  required int row,
+  int startCol = 0,
+}) {
+  const layoutBananaRow = 2;
+  const layoutBananaStartCol = 0;
+  const layoutBananaSplitCol = 3;
+  final rowOffset = row - layoutBananaRow;
+  final colOffset = startCol - layoutBananaStartCol;
+
+  return piecesMovedOnBoard([
+    for (final chunkId in chunkIdsCoveringWord(metadata, 'BANANA'))
+      if (metadata.chunkById[chunkId] != null)
+        PuzzlePiece.fromChunk(
+          metadata.chunkById[chunkId]!.chunk,
+          anchorRow:
+              metadata.chunkById[chunkId]!.chunk.solvedMinRow + rowOffset,
+          anchorCol: metadata.chunkById[chunkId]!.chunk.solvedMinCol +
+              colOffset +
+              (metadata.chunkById[chunkId]!.chunk.solvedMinCol >=
+                      layoutBananaSplitCol
+                  ? 1
+                  : 0),
+        ),
+  ]);
 }
 
 PuzzleLayoutMetadata cutleryMetadata() {
@@ -115,7 +194,6 @@ Set<String> knifeChunkIds(PuzzleLayoutMetadata metadata) {
     return const {};
   }
 
-  final knifeCells = metadata.wordById[knifeId]!.cellIds.toSet();
   return metadata.wordToChunkCoverage[knifeId]
           ?.map((entry) => entry.chunkId)
           .toSet() ??
@@ -138,10 +216,12 @@ PuzzlePiece _pieceWithFinalCellAt({
       localCol: localCol,
     );
     if (cellId == finalCellId) {
-      return PuzzlePiece.fromChunk(
-        ref.chunk,
-        anchorRow: boardRow - localRow,
-        anchorCol: boardCol - localCol,
+      return pieceMovedOnBoard(
+        PuzzlePiece.fromChunk(
+          ref.chunk,
+          anchorRow: boardRow - localRow,
+          anchorCol: boardCol - localCol,
+        ),
       );
     }
   }
@@ -155,12 +235,12 @@ List<PuzzlePiece> cutleryWithKnifeConnectedOnly(PuzzleLayoutMetadata metadata) {
   final knifeId = knifeWordId(metadata)!;
   final knifeCells = metadata.wordById[knifeId]!.cellIds;
   final knifeChunks = knifeChunkIds(metadata);
-  const knifeRow = 6;
-  const knifeStartCol = 2;
+  const knifeRow = 4;
+  const knifeStartCol = 0;
 
   final pieces = <PuzzlePiece>[];
-  var scatterRow = 12;
-  var scatterCol = 0;
+  var scatterRow = 0;
+  var scatterCol = 5;
 
   for (final ref in metadata.chunkById.values) {
     if (knifeChunks.contains(ref.chunkId)) {
@@ -179,6 +259,11 @@ List<PuzzlePiece> cutleryWithKnifeConnectedOnly(PuzzleLayoutMetadata metadata) {
       continue;
     }
 
+    if (scatterCol + ref.chunk.width > BoardConstants.kPlayGridCols) {
+      scatterCol = 5;
+      scatterRow += ref.chunk.height + 1;
+    }
+
     pieces.add(
       PuzzlePiece.fromChunk(
         ref.chunk,
@@ -186,11 +271,10 @@ List<PuzzlePiece> cutleryWithKnifeConnectedOnly(PuzzleLayoutMetadata metadata) {
         anchorCol: scatterCol,
       ),
     );
-    scatterRow += ref.chunk.height + 3;
     scatterCol += ref.chunk.width + 1;
   }
 
-  return pieces;
+  return piecesMovedOnBoard(pieces);
 }
 
 /// All cutlery letters on board in crossword shape (all words can be accepted).
@@ -493,7 +577,7 @@ List<PuzzlePiece> directionsPiecesForEastFirstWestTest(
     scatterRow += ref.chunk.height + 2;
   }
 
-  return pieces;
+  return piecesMovedOnBoard(pieces);
 }
 
 Set<String> eastFirstWestMovedChunkIds(PuzzleLayoutMetadata metadata) {
@@ -513,6 +597,35 @@ Set<String> eastFirstWestMovedChunkIds(PuzzleLayoutMetadata metadata) {
   ]);
 }
 
+List<PuzzlePiece> directionsPiecesForEastWithAdjacentH(
+  PuzzleLayoutMetadata metadata,
+) {
+  final northId = wordIdForText(metadata, 'NORTH')!;
+  final hCellId = metadata.wordById[northId]!.cellIds.firstWhere(
+    (cellId) => metadata.finalCellById[cellId]!.letter == 'H',
+  );
+  final hRef = chunkRefForFinalCell(metadata, hCellId);
+  final eastId = wordIdForText(metadata, 'EAST')!;
+  final eLayout =
+      metadata.finalCellById[metadata.wordById[eastId]!.cellIds.first]!;
+
+  final pieces = directionsPiecesForEastFirstWestTest(metadata)
+      .where((piece) => piece.chunkId != hRef.chunkId)
+      .toList();
+
+  pieces.add(
+    _pieceWithFinalCellAt(
+      metadata: metadata,
+      ref: hRef,
+      finalCellId: hCellId,
+      boardRow: eLayout.row - 1,
+      boardCol: eLayout.col,
+    ),
+  );
+
+  return piecesMovedOnBoard(pieces);
+}
+
 List<PuzzlePiece> directionsPiecesWithWestWeAboveCompletedEast(
   List<PuzzlePiece> pieces,
   PuzzleLayoutMetadata metadata,
@@ -521,55 +634,41 @@ List<PuzzlePiece> directionsPiecesWithWestWeAboveCompletedEast(
   final westCells = metadata.wordById[westId]!.cellIds;
   final westW = chunkRefForFinalCell(metadata, westCells[0]);
   final westE = chunkRefForFinalCell(metadata, westCells[1]);
+  final westWLayout = metadata.finalCellById[westCells[0]]!;
+  final westELayout = metadata.finalCellById[westCells[1]]!;
 
-  final updated = <PuzzlePiece>[];
-  for (final piece in pieces) {
-    if (piece.isCompletedWordGroup) {
-      updated.add(
-        PuzzlePiece.completedClusterGroup(
-          clusterKey: piece.completedWordKey ?? piece.id,
-          anchorRow: 2,
-          anchorCol: 5,
-          cells: const [
-            PieceCell(letter: 'S', rowOffset: 0, colOffset: 0),
-            PieceCell(letter: 'T', rowOffset: 1, colOffset: 0),
-          ],
-          completedAnswers: piece.completedAnswers,
-        ),
-      );
-      continue;
-    }
+  final updated = <PuzzlePiece>[
+    for (final piece in pieces)
+      if (piece.isCompletedWordGroup)
+        piece
+      else if (piece.chunkId != westW.chunkId &&
+          piece.chunkId != westE.chunkId)
+        piece,
+  ];
 
-    if (piece.chunkId == westW.chunkId) {
-      updated.add(
-        _pieceWithFinalCellAt(
-          metadata: metadata,
-          ref: westW,
-          finalCellId: westCells[0],
-          boardRow: 0,
-          boardCol: 5,
-        ),
-      );
-      continue;
-    }
+  updated.add(
+    _pieceWithFinalCellAt(
+      metadata: metadata,
+      ref: westW,
+      finalCellId: westCells[0],
+      boardRow: westWLayout.row,
+      boardCol: westWLayout.col,
+    ),
+  );
 
-    if (piece.chunkId == westE.chunkId && westE.chunkId != westW.chunkId) {
-      updated.add(
-        _pieceWithFinalCellAt(
-          metadata: metadata,
-          ref: westE,
-          finalCellId: westCells[1],
-          boardRow: 1,
-          boardCol: 5,
-        ),
-      );
-      continue;
-    }
-
-    updated.add(piece);
+  if (westE.chunkId != westW.chunkId) {
+    updated.add(
+      _pieceWithFinalCellAt(
+        metadata: metadata,
+        ref: westE,
+        finalCellId: westCells[1],
+        boardRow: westELayout.row,
+        boardCol: westELayout.col,
+      ),
+    );
   }
 
-  return updated;
+  return piecesMovedOnBoard(updated);
 }
 
 /// Vertical WEST column plus horizontal E-A connected to shared T.
@@ -651,7 +750,7 @@ List<PuzzlePiece> directionsPiecesForWestFirstEastTest(
     scatterRow += ref.chunk.height + 2;
   }
 
-  return pieces;
+  return piecesMovedOnBoard(pieces);
 }
 
 List<PuzzlePiece> directionsPiecesForSouthAfterEast(
@@ -694,7 +793,7 @@ List<PuzzlePiece> directionsPiecesForSouthAfterEast(
     );
   }
 
-  return updated;
+  return piecesMovedOnBoard(updated);
 }
 
 String? forkWordId(PuzzleLayoutMetadata metadata) {
@@ -712,7 +811,6 @@ Set<String> forkChunkIds(PuzzleLayoutMetadata metadata) {
     return const {};
   }
 
-  final forkCells = metadata.wordById[forkId]!.cellIds.toSet();
   return metadata.wordToChunkCoverage[forkId]
           ?.map((entry) => entry.chunkId)
           .toSet() ??
@@ -723,11 +821,11 @@ List<PuzzlePiece> cutleryWithForkConnectedOnly(PuzzleLayoutMetadata metadata) {
   final forkId = forkWordId(metadata)!;
   final forkCells = metadata.wordById[forkId]!.cellIds;
   final forkChunks = forkChunkIds(metadata);
-  const forkRow = 6;
-  const forkStartCol = 2;
+  const forkRow = 2;
+  const forkStartCol = 0;
 
   final pieces = <PuzzlePiece>[];
-  var scatterRow = 20;
+  var scatterRow = 6;
   var scatterCol = 0;
 
   for (final ref in metadata.chunkById.values) {
@@ -758,7 +856,7 @@ List<PuzzlePiece> cutleryWithForkConnectedOnly(PuzzleLayoutMetadata metadata) {
     scatterCol += ref.chunk.width + 1;
   }
 
-  return pieces;
+  return piecesMovedOnBoard(pieces);
 }
 
 WordResolutionResult completeForkOnlyInCutlery({
@@ -771,18 +869,32 @@ WordResolutionResult completeForkOnlyInCutlery({
       .where((piece) => !forkChunkIds(metadata).contains(piece.chunkId))
       .toList();
 
+  var groupMinRow = forkCells
+      .map((cellId) => metadata.finalCellById[cellId]!.row)
+      .reduce((a, b) => a < b ? a : b);
+  var groupMinCol = forkCells
+      .map((cellId) => metadata.finalCellById[cellId]!.col)
+      .reduce((a, b) => a < b ? a : b);
+
+  final groupCells = <PieceCell>[];
+  for (final cellId in forkCells) {
+    final cell = metadata.finalCellById[cellId]!;
+    groupCells.add(
+      PieceCell(
+        letter: cell.letter,
+        rowOffset: cell.row - groupMinRow,
+        colOffset: cell.col - groupMinCol,
+      ),
+    );
+  }
+
   final groupedPieces = [
     ...withoutFork,
     PuzzlePiece.completedClusterGroup(
       clusterKey: 'fork_test',
-      anchorRow: 6,
-      anchorCol: 2,
-      cells: const [
-        PieceCell(letter: 'F', rowOffset: 0, colOffset: 0),
-        PieceCell(letter: 'O', rowOffset: 0, colOffset: 1),
-        PieceCell(letter: 'R', rowOffset: 0, colOffset: 2),
-        PieceCell(letter: 'K', rowOffset: 0, colOffset: 3),
-      ],
+      anchorRow: groupMinRow,
+      anchorCol: groupMinCol,
+      cells: groupCells,
       completedAnswers: {'FORK'},
     ),
   ];
@@ -810,8 +922,8 @@ List<PuzzlePiece> cutleryKnifePiecesAfterForkCompleted(
 ) {
   final knifeId = knifeWordId(metadata)!;
   final knifeCells = metadata.wordById[knifeId]!.cellIds;
-  const knifeRow = 10;
-  const knifeStartCol = 2;
+  const knifeRow = 4;
+  const knifeStartCol = 0;
 
   final updated = <PuzzlePiece>[];
   for (final piece in forkPieces) {
@@ -841,7 +953,7 @@ List<PuzzlePiece> cutleryKnifePiecesAfterForkCompleted(
     );
   }
 
-  return updated;
+  return piecesMovedOnBoard(updated);
 }
 
 bool completedGroupContainsFinalCell({
@@ -898,4 +1010,69 @@ bool activePiecesContainFinalCell({
   }
 
   return false;
+}
+
+PuzzleLayoutMetadata fruitSaladMetadata() {
+  return metadataForWords(const [
+    PlacedWord(
+      word: 'BANANA',
+      row: 2,
+      col: 0,
+      direction: WordDirection.horizontal,
+    ),
+    PlacedWord(
+      word: 'ORANGE',
+      row: 0,
+      col: 1,
+      direction: WordDirection.vertical,
+    ),
+    PlacedWord(
+      word: 'APPLE',
+      row: 2,
+      col: 3,
+      direction: WordDirection.vertical,
+    ),
+  ]);
+}
+
+List<String> chunkIdsCoveringWord(
+  PuzzleLayoutMetadata metadata,
+  String wordText,
+) {
+  final wordId = wordIdForText(metadata, wordText);
+  if (wordId == null) {
+    return const [];
+  }
+
+  return metadata.wordToChunkCoverage[wordId]
+          ?.map((entry) => entry.chunkId)
+          .toSet()
+          .toList() ??
+      const [];
+}
+
+List<PuzzlePiece> piecesForChunkIds(
+  PuzzleLayoutMetadata metadata,
+  Iterable<String> chunkIds,
+) {
+  return piecesMovedOnBoard([
+    for (final chunkId in chunkIds)
+      if (metadata.chunkById[chunkId] != null)
+        PuzzlePiece.fromChunk(
+          metadata.chunkById[chunkId]!.chunk,
+          anchorRow: metadata.chunkById[chunkId]!.chunk.solvedMinRow,
+          anchorCol: metadata.chunkById[chunkId]!.chunk.solvedMinCol,
+        ),
+  ]);
+}
+
+List<PuzzlePiece> fruitSaladBananaOnlyPieces(PuzzleLayoutMetadata metadata) {
+  return piecesForChunkIds(
+    metadata,
+    chunkIdsCoveringWord(metadata, 'BANANA'),
+  );
+}
+
+List<PuzzlePiece> fruitSaladAllPiecesAtLayout(PuzzleLayoutMetadata metadata) {
+  return piecesAtLayoutPositions(metadata);
 }

@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:jam_pro/features/puzzle/data/deconstructors/puzzle_deconstructor.dart';
 import 'package:jam_pro/features/puzzle/data/models/placed_word.dart';
 import 'package:jam_pro/features/puzzle/data/models/puzzle_layout.dart';
-import 'package:jam_pro/features/puzzle/domain/puzzle_board_state.dart';
 import 'package:jam_pro/features/puzzle/domain/word_resolution/puzzle_layout_metadata.dart';
 
 void main() {

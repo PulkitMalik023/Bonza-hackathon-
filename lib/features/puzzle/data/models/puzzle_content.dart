@@ -32,4 +32,27 @@ class PuzzleContent {
       enabled: json['enabled'] as bool? ?? true,
     );
   }
+
+  PuzzleContent copyWith({
+    int? id,
+    String? category,
+    List<String>? words,
+    bool? enabled,
+  }) {
+    return PuzzleContent(
+      id: id ?? this.id,
+      category: category ?? this.category,
+      words: words ?? this.words,
+      enabled: enabled ?? this.enabled,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'category': category,
+      'words': words,
+      'enabled': enabled,
+    };
+  }
 }

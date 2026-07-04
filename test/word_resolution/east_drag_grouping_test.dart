@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jam_pro/features/puzzle/domain/puzzle_piece.dart';
 import 'package:jam_pro/features/puzzle/domain/word_resolution/word_resolution_service.dart';
 
 import 'word_resolution_test_helpers.dart';
@@ -26,11 +25,43 @@ void main() {
 
     expect(completedGroups, hasLength(1));
     expect(completedGroups.first.completedAnswers, contains('EAST'));
-    expect(completedGroups.first.cells.length, equals(4));
+    expect(completedGroups.first.cells.length, greaterThanOrEqualTo(4));
     expect(
-      completedGroups.first.cells.map((cell) => cell.letter).join(),
-      'EAST',
+      completedGroups.first.cells.map((cell) => cell.letter).toSet(),
+      containsAll(['E', 'A', 'S', 'T']),
     );
+  });
+
+  test('EAST completed group absorbs adjacent H in connected mass', () {
+    final metadata = directionsMetadata();
+    final pieces = directionsPiecesForEastWithAdjacentH(metadata);
+
+    final eastResult = handlePuzzleStateAfterReconnect(
+      pieces: pieces,
+      metadata: metadata,
+      movedChunkIds: eastFirstWestMovedChunkIds(metadata),
+      solvedWordIds: const {},
+      reservedCellIds: const {},
+      solvedAssignments: const {},
+    );
+
+    expect(eastResult.completedAnswers, contains('EAST'));
+
+    final completedGroup = eastResult.pieces
+        .firstWhere((piece) => piece.isCompletedWordGroup);
+
+    expect(
+      completedGroup.cells.any((cell) => cell.letter == 'H'),
+      isTrue,
+      reason: 'H adjacent to EAST mass must move with completed group',
+    );
+
+    final looseHCount = eastResult.pieces
+        .where((piece) => !piece.isCompletedWordGroup)
+        .expand((piece) => piece.cells)
+        .where((cell) => cell.letter == 'H')
+        .length;
+    expect(looseHCount, 0);
   });
 
   test('EAST completed group moves as one piece with T included', () {

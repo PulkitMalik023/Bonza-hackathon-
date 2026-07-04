@@ -23,6 +23,18 @@ class FinalLayoutWord {
   final WordOrientation orientation;
 }
 
+class ComponentEmbedding {
+  const ComponentEmbedding({
+    required this.finalCellIdByBoardPos,
+    required this.rowDelta,
+    required this.colDelta,
+  });
+
+  final Map<BoardCellPosition, String> finalCellIdByBoardPos;
+  final int rowDelta;
+  final int colDelta;
+}
+
 class FinalLayoutCell {
   const FinalLayoutCell({
     required this.id,

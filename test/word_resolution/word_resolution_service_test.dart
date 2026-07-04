@@ -42,7 +42,7 @@ void main() {
       ),
     ]);
 
-    final pieces = connectedPiecesAtRow(metadata: metadata, row: 2);
+    final pieces = connectedCrosswordPieces(metadata: metadata);
     final movedChunkIds = metadata.chunkById.keys.take(1);
 
     final result = handlePuzzleStateAfterReconnect(

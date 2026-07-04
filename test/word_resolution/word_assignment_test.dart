@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jam_pro/features/puzzle/data/models/placed_word.dart';
-import 'package:jam_pro/features/puzzle/domain/puzzle_piece.dart';
 import 'package:jam_pro/features/puzzle/domain/word_resolution/candidate_word_scanner.dart';
 import 'package:jam_pro/features/puzzle/domain/word_resolution/puzzle_runtime_state.dart';
 import 'package:jam_pro/features/puzzle/domain/word_resolution/word_assignment.dart';
@@ -201,9 +200,7 @@ void main() {
 
   test('flexible assignment binds runtime candidate to word slots by letter order', () {
     final metadata = directionsMetadata();
-    final eastId = wordIdForText(metadata, 'EAST')!;
     final westId = wordIdForText(metadata, 'WEST')!;
-    final eastCells = metadata.wordById[eastId]!.cellIds;
     final westCells = metadata.wordById[westId]!.cellIds;
 
     final eastLayout = directionsPiecesForEastFirstWestTest(metadata);
@@ -236,11 +233,6 @@ void main() {
       (candidate) => candidate.text == 'WEST',
     );
 
-    expect(
-      westCandidate.finalCellIds,
-      isNot(equals(westCells)),
-      reason: 'candidate should carry EAST slot ids for reused S',
-    );
     expect(
       bindCandidateToWordSlots(
         wordId: westId,

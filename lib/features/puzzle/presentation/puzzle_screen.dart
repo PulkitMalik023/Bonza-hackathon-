@@ -8,12 +8,11 @@ import '../../../core/constants/board_constants.dart';
 import '../../../core/constants/debug_flags.dart';
 import '../../../core/theme/puzzle_theme.dart';
 import '../data/deconstructors/puzzle_deconstructor.dart';
-import '../data/deconstructors/puzzle_layout_selector.dart';
-import '../data/generators/puzzle_layout_generator.dart';
 import '../data/models/deconstructed_puzzle.dart';
 import '../data/models/generated_puzzle_layout.dart';
 import '../data/models/puzzle_content.dart';
 import '../data/models/puzzle_layout.dart';
+import '../data/repositories/hardcoded_puzzle_repository.dart';
 import '../data/repositories/puzzle_repository.dart';
 import '../domain/board_geometry.dart';
 import '../domain/word_resolution/puzzle_layout_metadata.dart';
@@ -74,7 +73,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   int _playCanvasRows = 0;
   int _playCanvasCols = 0;
   List<PuzzlePiece> _playPieces = const [];
-  DeconstructedPuzzle? _deconstructedPuzzle;
+  DeconstructedPuzzle? _hardcodedDeconstructed;
   PuzzleLayoutMetadata? _layoutMetadata;
   Set<String> _completedAnswers = {};
   Set<String> _solvedWordIds = {};
@@ -161,19 +160,26 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     required int canvasRows,
     required int canvasCols,
   }) {
-    _deconstructedPuzzle = PuzzleDeconstructor().build(layout);
+    final deconstructed =
+        _hardcodedDeconstructed ?? PuzzleDeconstructor().build(layout);
     _layoutMetadata = PuzzleLayoutMetadata.fromLayoutAndDeconstruction(
       layout: layout,
-      deconstructed: _deconstructedPuzzle!,
+      deconstructed: deconstructed,
     );
 
     switch (kPuzzlePieceSource) {
       case PuzzlePieceSource.deconstructed:
-        _playPieces = buildDeconstructedPlayPieces(
-          layout: layout,
-          canvasRows: canvasRows,
-          canvasCols: canvasCols,
-        );
+        _playPieces = _hardcodedDeconstructed != null
+            ? buildDeconstructedPlayPiecesFromDeconstruction(
+                deconstructed: deconstructed,
+                canvasRows: canvasRows,
+                canvasCols: canvasCols,
+              )
+            : buildDeconstructedPlayPieces(
+                layout: layout,
+                canvasRows: canvasRows,
+                canvasCols: canvasCols,
+              );
       case PuzzlePieceSource.solved:
         final pieceState = buildSolvedPiece(layout);
         var piece = PuzzlePiece.fromPieceState(pieceState);
@@ -245,6 +251,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       _layouts = const [];
       _currentLayoutIndex = 0;
       _playPieces = const [];
+      _hardcodedDeconstructed = null;
       _playCanvasRows = 0;
       _playCanvasCols = 0;
       _resetCompletionState();
@@ -261,43 +268,30 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
         throw StateError('Puzzle ${widget.puzzleId} is disabled');
       }
 
-      final layoutSelector = PuzzleLayoutSelector();
-      final generatedLayouts =
-          PuzzleLayoutGenerator().generateAllLayouts(puzzle.words);
-      final layouts =
-          layoutSelector.prioritizeValidDeconstructionLayouts(generatedLayouts);
-      final validLayoutCount = generatedLayouts
-          .where(layoutSelector.hasValidDeconstruction)
-          .length;
+      final bundle =
+          await HardcodedPuzzleRepository().loadBundle(widget.puzzleId);
+      if (bundle == null) {
+        throw StateError(
+          'No hardcoded definition for puzzle ${widget.puzzleId}',
+        );
+      }
+
+      final layout = bundle.layout;
 
       debugPrint('[PuzzleScreen] Loaded puzzle: ${puzzle.id}');
       debugPrint('[PuzzleScreen] Category: ${puzzle.category}');
       debugPrint('[PuzzleScreen] Words: ${puzzle.words}');
-      debugPrint(
-        '[PuzzleScreen] Total layouts: ${generatedLayouts.length} '
-        '(valid deconstruction: $validLayoutCount)',
-      );
-
-      if (layouts.isEmpty) {
-        if (!mounted) {
-          return;
-        }
-
-        setState(() {
-          _errorMessage = 'No valid layout found for this puzzle';
-          _isLoading = false;
-        });
-        return;
-      }
-
-      final currentLayout = layouts.first;
+      debugPrint('[PuzzleScreen] Using hardcoded layout and chunks');
       debugPrint('[PuzzleScreen] Placements:');
-      for (final placement in currentLayout.placedWords) {
+      for (final placement in layout.placedWords) {
         debugPrint('[PuzzleScreen]   $placement');
       }
       debugPrint(
-        '[PuzzleScreen] Bounds: rows ${currentLayout.minRow}..${currentLayout.maxRow}, '
-        'cols ${currentLayout.minCol}..${currentLayout.maxCol}',
+        '[PuzzleScreen] Bounds: rows ${layout.minRow}..${layout.maxRow}, '
+        'cols ${layout.minCol}..${layout.maxCol}',
+      );
+      debugPrint(
+        '[PuzzleScreen] Hardcoded chunks: ${bundle.deconstructed.chunks.length}',
       );
 
       if (!mounted) {
@@ -306,7 +300,8 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
       setState(() {
         _puzzle = puzzle;
-        _layouts = layouts;
+        _layouts = [layout];
+        _hardcodedDeconstructed = bundle.deconstructed;
         _currentLayoutIndex = 0;
         _isLoading = false;
       });
@@ -447,7 +442,6 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     _puzzleCompletionHandled = false;
     _introAnimationPending = true;
     _interactionEnabled = false;
-    _deconstructedPuzzle = null;
     _lastEvaluatedPiecesSnapshot = null;
     _moveHistory.clear();
     _clearActiveHint();

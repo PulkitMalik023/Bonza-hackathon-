@@ -19,18 +19,6 @@ void main() {
       ),
     ];
 
-    final after = [
-      PuzzlePiece(
-        id: 'a',
-        chunkId: 'a',
-        anchorRow: 2,
-        anchorCol: 3,
-        spawnAnchorRow: 0,
-        spawnAnchorCol: 0,
-        cells: const [PieceCell(letter: 'A', rowOffset: 0, colOffset: 0)],
-      ),
-    ];
-
     history.push(before, {'RED'});
     expect(history.canUndo, isTrue);
 
