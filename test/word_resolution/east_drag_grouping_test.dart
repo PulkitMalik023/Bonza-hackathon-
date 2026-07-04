@@ -32,7 +32,7 @@ void main() {
     );
   });
 
-  test('EAST completed group absorbs adjacent H in connected mass', () {
+  test('EAST completed group does not absorb adjacent H from another word', () {
     final metadata = directionsMetadata();
     final pieces = directionsPiecesForEastWithAdjacentH(metadata);
 
@@ -52,8 +52,8 @@ void main() {
 
     expect(
       completedGroup.cells.any((cell) => cell.letter == 'H'),
-      isTrue,
-      reason: 'H adjacent to EAST mass must move with completed group',
+      isFalse,
+      reason: 'H from NORTH must stay separate from EAST completed group',
     );
 
     final looseHCount = eastResult.pieces
@@ -61,7 +61,7 @@ void main() {
         .expand((piece) => piece.cells)
         .where((cell) => cell.letter == 'H')
         .length;
-    expect(looseHCount, 0);
+    expect(looseHCount, 1);
   });
 
   test('EAST completed group moves as one piece with T included', () {

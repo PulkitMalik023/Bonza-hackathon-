@@ -45,6 +45,18 @@ PuzzleRuntimeState applyWordAssignmentToSolverState({
           ),
     );
 
+  final latentInventory = Map<String, PlacedRuntimeCell>.from(
+    state.latentInventoryByFinalId,
+  )..removeWhere(
+      (cellId, _) =>
+          assignment.reservedFinalCellIds.contains(cellId) &&
+          !_shouldKeepCellForUnsolvedIntersection(
+            cellId: cellId,
+            state: state,
+            metadata: metadata,
+          ),
+    );
+
   final moveComponentId = assignment.contributingComponentIds.isNotEmpty
       ? assignment.contributingComponentIds.first
       : null;
@@ -66,6 +78,7 @@ PuzzleRuntimeState applyWordAssignmentToSolverState({
         moveComponentId: moveComponentId,
       ),
     },
+    latentInventoryByFinalId: latentInventory,
   );
 }
 

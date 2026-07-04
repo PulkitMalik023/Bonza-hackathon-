@@ -39,10 +39,6 @@ abstract final class CategoryIconMapper {
       assetPath: HomeAssets.colors,
       fallbackIcon: Icons.palette_rounded,
     ),
-    'Body Parts': const CategoryIconInfo(
-      assetPath: HomeAssets.bodyParts,
-      fallbackIcon: Icons.accessibility_new_rounded,
-    ),
     'Birds': const CategoryIconInfo(
       assetPath: HomeAssets.birds,
       fallbackIcon: Icons.flutter_dash_rounded,

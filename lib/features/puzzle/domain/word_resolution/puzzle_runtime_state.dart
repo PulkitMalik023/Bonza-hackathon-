@@ -15,6 +15,7 @@ class PuzzleRuntimeState {
     required this.solvedWordIds,
     required this.reservedCellIds,
     required this.solvedAssignments,
+    this.latentInventoryByFinalId = const {},
   });
 
   final Map<String, PlacedRuntimeCell> placedCellsByFinalId;
@@ -23,6 +24,7 @@ class PuzzleRuntimeState {
   final Set<String> solvedWordIds;
   final Set<String> reservedCellIds;
   final Map<String, SolvedAssignment> solvedAssignments;
+  final Map<String, PlacedRuntimeCell> latentInventoryByFinalId;
 
   PuzzleRuntimeState clone() {
     return PuzzleRuntimeState(
@@ -39,6 +41,7 @@ class PuzzleRuntimeState {
             moveComponentId: entry.value.moveComponentId,
           ),
       },
+      latentInventoryByFinalId: Map.from(latentInventoryByFinalId),
     );
   }
 }
@@ -54,6 +57,7 @@ PuzzleRuntimeState rebuildRuntimeBoardState({
 }) {
   final placedCellsByFinalId = <String, PlacedRuntimeCell>{};
   final boardCellMap = <BoardCellPosition, BoardCellEntry>{};
+  final latentInventoryByFinalId = <String, PlacedRuntimeCell>{};
   final cellToComponentSeed = <String, String>{};
   final boardPositionDelta = _boardPositionDeltaFromActivePieces(
     pieces: activePlayAreaPieces(
@@ -141,6 +145,50 @@ PuzzleRuntimeState rebuildRuntimeBoardState({
     );
   }
 
+  for (final piece in pieces) {
+    if (piece.isCompletedWordGroup) {
+      continue;
+    }
+    if (!isPieceAtSpawn(piece)) {
+      continue;
+    }
+
+    for (final cell in piece.cells) {
+      final finalCellId = metadata.finalCellIdForChunkLocal(
+        chunkId: piece.chunkId,
+        localRow: cell.rowOffset,
+        localCol: cell.colOffset,
+      );
+
+      if (finalCellId == null || placedCellsByFinalId.containsKey(finalCellId)) {
+        continue;
+      }
+
+      if (reservedCellIds.contains(finalCellId) &&
+          !isCellNeededByUnsolvedWord(
+            cellId: finalCellId,
+            solvedWordIds: solvedWordIds,
+            metadata: metadata,
+          )) {
+        continue;
+      }
+
+      final layoutCell = metadata.finalCellById[finalCellId];
+      if (layoutCell == null) {
+        continue;
+      }
+
+      latentInventoryByFinalId[finalCellId] = PlacedRuntimeCell(
+        finalCellId: finalCellId,
+        letter: cell.letter,
+        boardRow: layoutCell.row,
+        boardCol: layoutCell.col,
+        chunkId: piece.chunkId,
+        componentId: 'latent_${piece.chunkId}',
+      );
+    }
+  }
+
   final stateWithComponents = rebuildRuntimeComponents(
     PuzzleRuntimeState(
       placedCellsByFinalId: placedCellsByFinalId,
@@ -149,6 +197,7 @@ PuzzleRuntimeState rebuildRuntimeBoardState({
       solvedWordIds: solvedWordIds,
       reservedCellIds: reservedCellIds,
       solvedAssignments: solvedAssignments,
+      latentInventoryByFinalId: latentInventoryByFinalId,
     ),
   );
 
@@ -314,6 +363,7 @@ PuzzleRuntimeState rebuildRuntimeComponents(PuzzleRuntimeState state) {
     solvedWordIds: state.solvedWordIds,
     reservedCellIds: state.reservedCellIds,
     solvedAssignments: state.solvedAssignments,
+    latentInventoryByFinalId: state.latentInventoryByFinalId,
   );
 
   for (final component in rebuilt.componentsById.values) {

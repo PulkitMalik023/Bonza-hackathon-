@@ -74,6 +74,121 @@ bool isCellBlockedByReservation({
   );
 }
 
+bool wordHasPlayAreaCellsOnBoard({
+  required String wordId,
+  required PuzzleRuntimeState state,
+  required PuzzleLayoutMetadata metadata,
+}) {
+  final word = metadata.wordById[wordId];
+  if (word == null) {
+    return false;
+  }
+
+  for (final cellId in word.cellIds) {
+    final layoutCell = metadata.finalCellById[cellId];
+    if (layoutCell == null) {
+      continue;
+    }
+
+    final layoutPosition = BoardCellPosition(
+      row: layoutCell.row,
+      col: layoutCell.col,
+    );
+    final boardEntry = state.boardCellMap[layoutPosition];
+    if (boardEntry != null &&
+        boardEntry.letter.toUpperCase() == layoutCell.letter.toUpperCase()) {
+      return true;
+    }
+
+    final placed = state.placedCellsByFinalId[cellId];
+    if (placed != null &&
+        placed.boardRow == layoutCell.row &&
+        placed.boardCol == layoutCell.col &&
+        placed.letter.toUpperCase() == layoutCell.letter.toUpperCase()) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool shouldApplySolvabilityGate({
+  required String wordId,
+  required WordAssignmentOption assignment,
+  required PuzzleRuntimeState state,
+  required PuzzleLayoutMetadata metadata,
+}) {
+  final completingWord = metadata.wordById[wordId];
+  if (completingWord == null) {
+    return false;
+  }
+
+  for (final otherWordId in metadata.targetWordIds) {
+    if (otherWordId == wordId || state.solvedWordIds.contains(otherWordId)) {
+      continue;
+    }
+
+    if (!wordHasPlayAreaCellsOnBoard(
+      wordId: otherWordId,
+      state: state,
+      metadata: metadata,
+    )) {
+      continue;
+    }
+
+    final otherWord = metadata.wordById[otherWordId];
+    if (otherWord == null) {
+      continue;
+    }
+
+    final sharedIntersectionIds = completingWord.cellIds.toSet()
+        .intersection(otherWord.cellIds.toSet())
+        .where((cellId) => isCrosswordIntersectionCell(cellId, metadata))
+        .where((cellId) => assignment.reservedFinalCellIds.contains(cellId));
+
+    if (sharedIntersectionIds.isEmpty) {
+      continue;
+    }
+
+    final simulatedState = PuzzleRuntimeState(
+      placedCellsByFinalId: state.placedCellsByFinalId,
+      boardCellMap: state.boardCellMap,
+      componentsById: state.componentsById,
+      solvedWordIds: {...state.solvedWordIds, wordId},
+      reservedCellIds: {
+        ...state.reservedCellIds,
+        ...assignment.reservedFinalCellIds,
+      },
+      solvedAssignments: {
+        ...state.solvedAssignments,
+        wordId: SolvedAssignment(
+          wordId: wordId,
+          assignedCellIds: assignment.reservedFinalCellIds.toSet(),
+          moveComponentId: assignment.contributingComponentIds.isNotEmpty
+              ? assignment.contributingComponentIds.first
+              : null,
+        ),
+      },
+      latentInventoryByFinalId: state.latentInventoryByFinalId,
+    );
+
+    if (!canWordBeSatisfiedFromBoardInventory(
+          wordId: otherWordId,
+          state: simulatedState,
+          metadata: metadata,
+        ) &&
+        getPossibleAssignmentsForWord(
+          wordId: otherWordId,
+          state: simulatedState,
+          metadata: metadata,
+        ).isEmpty) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 PlacedRuntimeCell? resolveCellForWord({
   required String cellId,
   required String wordId,
@@ -153,6 +268,11 @@ PlacedRuntimeCell? resolveCellForWord({
   }
 
   if (!requireLayoutPosition) {
+    final latent = state.latentInventoryByFinalId[cellId];
+    if (latent != null &&
+        latent.letter.toUpperCase() == layoutCell.letter.toUpperCase()) {
+      return latent;
+    }
     return null;
   }
 
@@ -441,7 +561,9 @@ WordAssignmentOption? buildInventoryAssignmentForWord({
       wordId: wordId,
       state: state,
       metadata: metadata,
-    ) ?? state.placedCellsByFinalId[cellId];
+    ) ??
+        state.placedCellsByFinalId[cellId] ??
+        state.latentInventoryByFinalId[cellId];
     if (placed == null) {
       continue;
     }

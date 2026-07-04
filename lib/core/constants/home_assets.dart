@@ -16,7 +16,6 @@ abstract final class HomeAssets {
   static const cutlery = 'assets/icons/categories/cutlery.png';
   static const fruits = 'assets/icons/categories/fruits.png';
   static const colors = 'assets/icons/categories/colors.png';
-  static const bodyParts = 'assets/icons/categories/body_parts.png';
   static const birds = 'assets/icons/categories/birds.png';
   static const vegetables = 'assets/icons/categories/vegetables.png';
   static const drinks = 'assets/icons/categories/drinks.png';

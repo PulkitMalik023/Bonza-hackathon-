@@ -196,7 +196,48 @@ List<WordAssignmentOption> resolveAcceptedConnectedLineWords({
         continue;
       }
 
-      final chosen = matchingAssignments.first;
+      WordAssignmentOption? chosen;
+      for (final assignment in matchingAssignments) {
+        final trial = applyWordAssignmentToSolverState(
+          state: workingState,
+          assignment: assignment,
+          metadata: metadata,
+        );
+
+        final needsGate = shouldApplySolvabilityGate(
+          wordId: wordId,
+          assignment: assignment,
+          state: workingState,
+          metadata: metadata,
+        );
+
+        if (!needsGate ||
+            canRemainingPuzzleBeSolved(
+              state: trial,
+              metadata: metadata,
+              options: options,
+            )) {
+          chosen = assignment;
+          break;
+        }
+
+        logSolvabilityReject(
+          wordId: wordId,
+          candidateText: candidate.text,
+        );
+        for (final blockedId in getBlockedUnsolvedWordIds(
+          state: trial,
+          metadata: metadata,
+          options: options,
+        )) {
+          logBlockedWord(blockedId);
+        }
+      }
+
+      if (chosen == null) {
+        continue;
+      }
+
       final moveComponent = chosen.contributingComponentIds.isNotEmpty
           ? chosen.contributingComponentIds.first
           : 'cmp_unknown';
@@ -282,11 +323,19 @@ List<WordAssignmentOption> resolveCompletedWordsAfterReconnect({
           metadata: metadata,
         );
 
-        if (canRemainingPuzzleBeSolved(
-          state: trial,
+        final needsGate = shouldApplySolvabilityGate(
+          wordId: wordId,
+          assignment: assignment,
+          state: workingState,
           metadata: metadata,
-          options: options,
-        )) {
+        );
+
+        if (!needsGate ||
+            canRemainingPuzzleBeSolved(
+              state: trial,
+              metadata: metadata,
+              options: options,
+            )) {
           chosen = assignment;
           break;
         }
@@ -519,20 +568,11 @@ Map<BoardCellPosition, String> _boardCellsForCluster({
   }
 
   final playAreaBoard = buildPlayAreaLetterMap(pieces);
-  final chunkExpanded = expandToContributingComponentCells(
+  return expandToContributingComponentCells(
     matchedCells: cells.keys,
     pieces: pieces,
     playAreaBoard: playAreaBoard,
   );
-  final connected = getConnectedPlayAreaCells(
-    seedCells: chunkExpanded.keys.toSet(),
-    playAreaBoard: playAreaBoard,
-  );
-
-  return {
-    for (final position in connected)
-      if (playAreaBoard[position] != null) position: playAreaBoard[position]!,
-  };
 }
 
 Map<BoardCellPosition, String> _boardCellsForReservedIds({

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/puzzle_theme.dart';
 import '../../domain/puzzle_piece.dart';
+import 'puzzle_completed_group_seams.dart';
 import 'puzzle_node_tile.dart';
 import 'puzzle_tile_edge_mask.dart';
 
@@ -18,6 +19,7 @@ class PuzzlePieceContent extends StatelessWidget {
     this.isDragging = false,
     this.isCompleted = false,
     this.isHintHighlighted = false,
+    this.connectionSeamOpacity = 0,
   });
 
   final PuzzlePiece piece;
@@ -28,6 +30,7 @@ class PuzzlePieceContent extends StatelessWidget {
   final bool isDragging;
   final bool isCompleted;
   final bool isHintHighlighted;
+  final double connectionSeamOpacity;
 
   @override
   Widget build(BuildContext context) {
@@ -63,6 +66,12 @@ class PuzzlePieceContent extends StatelessWidget {
                   occupiedOffsets: occupiedOffsets,
                 ),
               ),
+            ),
+          if (!isGhost && connectionSeamOpacity > 0)
+            PuzzleCompletedGroupSeams(
+              cells: piece.cells,
+              tileSize: tileSize,
+              connectionSeamOpacity: connectionSeamOpacity,
             ),
         ],
       ),

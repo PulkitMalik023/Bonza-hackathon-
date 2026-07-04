@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../../../core/audio/puzzle_audio_controller.dart';
+import '../../../core/haptics/puzzle_haptics.dart';
 import '../../../core/constants/board_constants.dart';
 import '../../../core/constants/debug_flags.dart';
 import '../../../core/theme/puzzle_theme.dart';
@@ -552,10 +553,27 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   void _applyWordResolutionResult(WordResolutionResult result) {
     if (!result.hasChanges) {
       if (result.puzzleComplete && !_puzzleCompletionHandled) {
+        PuzzleHaptics.puzzleCompleted();
+        setState(() {
+          _puzzleCompletionHandled = true;
+          _introAnimationPending = false;
+          _interactionEnabled = false;
+        });
         _onPuzzleCompleted();
       }
       return;
     }
+
+    if (result.newlySolvedWordIds.isNotEmpty) {
+      if (result.puzzleComplete) {
+        PuzzleHaptics.puzzleCompleted();
+      } else {
+        PuzzleHaptics.wordCompleted();
+      }
+    }
+
+    final puzzleJustCompleted =
+        result.puzzleComplete && !_puzzleCompletionHandled;
 
     setState(() {
       _playPieces = result.pieces;
@@ -563,24 +581,19 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       _solvedWordIds = result.solvedWordIds;
       _reservedCellIds = result.reservedCellIds;
       _solvedAssignments = result.solvedAssignments;
+      if (result.puzzleComplete) {
+        _puzzleCompletionHandled = true;
+        _introAnimationPending = false;
+        _interactionEnabled = false;
+      }
     });
 
-    if (result.puzzleComplete) {
+    if (puzzleJustCompleted) {
       _onPuzzleCompleted();
     }
   }
 
   Future<void> _onPuzzleCompleted() async {
-    if (_puzzleCompletionHandled) {
-      return;
-    }
-
-    setState(() {
-      _puzzleCompletionHandled = true;
-      _introAnimationPending = false;
-      _interactionEnabled = false;
-    });
-
     if (!mounted) {
       return;
     }
@@ -746,6 +759,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                         },
                         onDragEnd: _audioController.playTileDropSound,
                         interactionEnabled: _interactionEnabled,
+                        wordCompletionBurstEnabled: !_puzzleCompletionHandled,
                         introAnimationEnabled:
                             _introAnimationPending &&
                             !_puzzleCompletionHandled &&
