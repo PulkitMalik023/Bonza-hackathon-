@@ -378,6 +378,10 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer>
 
     logPiecePlacementResult(piece: piece, result: result);
 
+    if (result.action != ChunkDropAction.snap) {
+      return;
+    }
+
     final affectedCells = getAffectedCellsForPiece(
       piece: piece,
       previousAnchorRow: startRow,

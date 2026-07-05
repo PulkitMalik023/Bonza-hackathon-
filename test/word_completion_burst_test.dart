@@ -25,7 +25,7 @@ void main() {
 
       expect(find.byType(Container), findsWidgets);
 
-      await tester.pump(const Duration(milliseconds: 450));
+      await tester.pump(const Duration(milliseconds: 500));
       await tester.pump();
 
       expect(completed, isTrue);

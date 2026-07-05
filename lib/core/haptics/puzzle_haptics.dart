@@ -2,7 +2,7 @@ import 'package:flutter/services.dart';
 
 abstract final class PuzzleHaptics {
   static void wordCompleted() {
-    HapticFeedback.mediumImpact();
+    HapticFeedback.lightImpact();
   }
 
   static void puzzleCompleted() {

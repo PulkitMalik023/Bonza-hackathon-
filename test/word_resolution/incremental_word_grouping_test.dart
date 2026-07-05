@@ -61,7 +61,9 @@ void main() {
     var trayCol = 0;
 
     for (final chunkId in planetsMetadata.chunkById.keys) {
-      if (chunkId == 'chunk_0' || chunkId == 'chunk_1') {
+      if (chunkId == 'chunk_0' ||
+          chunkId == 'chunk_1' ||
+          chunkId == 'chunk_2') {
         pieces.add(chunkAtLayout(chunkId));
       } else {
         pieces.add(chunkAtSpawn(chunkId, trayCol));
@@ -72,7 +74,7 @@ void main() {
     final result = handlePuzzleStateAfterReconnect(
       pieces: pieces,
       metadata: planetsMetadata,
-      movedChunkIds: const ['chunk_0', 'chunk_1'],
+      movedChunkIds: const ['chunk_0', 'chunk_1', 'chunk_2'],
       solvedWordIds: const {},
       reservedCellIds: const {},
       solvedAssignments: const {},

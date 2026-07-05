@@ -834,7 +834,12 @@
             "row": 0,
             "col": 1,
             "letter": "E"
-          },
+          }
+        ]
+      },
+      {
+        "id": "chunk_1",
+        "cells": [
           {
             "row": 0,
             "col": 2,
@@ -848,7 +853,7 @@
         ]
       },
       {
-        "id": "chunk_1",
+        "id": "chunk_2",
         "cells": [
           {
             "row": 0,
@@ -868,7 +873,7 @@
         ]
       },
       {
-        "id": "chunk_2",
+        "id": "chunk_3",
         "cells": [
           {
             "row": 0,
@@ -883,7 +888,7 @@
         ]
       },
       {
-        "id": "chunk_3",
+        "id": "chunk_4",
         "cells": [
           {
             "row": 2,
@@ -908,7 +913,7 @@
         ]
       },
       {
-        "id": "chunk_4",
+        "id": "chunk_5",
         "cells": [
           {
             "row": 2,
@@ -919,12 +924,7 @@
             "row": 2,
             "col": 5,
             "letter": "E"
-          }
-        ]
-      },
-      {
-        "id": "chunk_5",
-        "cells": [
+          },
           {
             "row": 2,
             "col": 6,
@@ -979,6 +979,384 @@
             "row": 5,
             "col": 4,
             "letter": "N"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "puzzleId": 5,
+    "layout": {
+      "placements": [
+        {
+          "word": "SCISSORS",
+          "row": 4,
+          "col": 0,
+          "direction": "horizontal"
+        },
+        {
+          "word": "ROCK",
+          "row": 2,
+          "col": 1,
+          "direction": "vertical"
+        },
+        {
+          "word": "PAPER",
+          "row": 0,
+          "col": 6,
+          "direction": "vertical"
+        }
+      ],
+      "cells": [
+        {
+          "row": 0,
+          "col": 6,
+          "letter": "P"
+        },
+        {
+          "row": 1,
+          "col": 6,
+          "letter": "A"
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "letter": "R"
+        },
+        {
+          "row": 2,
+          "col": 6,
+          "letter": "P"
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "letter": "O"
+        },
+        {
+          "row": 3,
+          "col": 6,
+          "letter": "E"
+        },
+        {
+          "row": 4,
+          "col": 0,
+          "letter": "S"
+        },
+        {
+          "row": 4,
+          "col": 1,
+          "letter": "C"
+        },
+        {
+          "row": 4,
+          "col": 2,
+          "letter": "I"
+        },
+        {
+          "row": 4,
+          "col": 3,
+          "letter": "S"
+        },
+        {
+          "row": 4,
+          "col": 4,
+          "letter": "S"
+        },
+        {
+          "row": 4,
+          "col": 5,
+          "letter": "O"
+        },
+        {
+          "row": 4,
+          "col": 6,
+          "letter": "R"
+        },
+        {
+          "row": 4,
+          "col": 7,
+          "letter": "S"
+        },
+        {
+          "row": 5,
+          "col": 1,
+          "letter": "K"
+        }
+      ]
+    },
+    "chunks": [
+      {
+        "id": "chunk_0",
+        "cells": [
+          {
+            "row": 2,
+            "col": 1,
+            "letter": "R"
+          },
+          {
+            "row": 3,
+            "col": 1,
+            "letter": "O"
+          }
+        ]
+      },
+      {
+        "id": "chunk_1",
+        "cells": [
+          {
+            "row": 0,
+            "col": 6,
+            "letter": "P"
+          },
+          {
+            "row": 1,
+            "col": 6,
+            "letter": "A"
+          },
+          {
+            "row": 2,
+            "col": 6,
+            "letter": "P"
+          }
+        ]
+      },
+      {
+        "id": "chunk_2",
+        "cells": [
+          {
+            "row": 4,
+            "col": 0,
+            "letter": "S"
+          },
+          {
+            "row": 4,
+            "col": 1,
+            "letter": "C"
+          },
+          {
+            "row": 4,
+            "col": 2,
+            "letter": "I"
+          },
+          {
+            "row": 5,
+            "col": 1,
+            "letter": "K"
+          }
+        ]
+      },
+      {
+        "id": "chunk_3",
+        "cells": [
+          {
+            "row": 4,
+            "col": 3,
+            "letter": "S"
+          },
+          {
+            "row": 4,
+            "col": 4,
+            "letter": "S"
+          },
+          {
+            "row": 4,
+            "col": 5,
+            "letter": "O"
+          }
+        ]
+      },
+      {
+        "id": "chunk_4",
+        "cells": [
+          {
+            "row": 3,
+            "col": 6,
+            "letter": "E"
+          },
+          {
+            "row": 4,
+            "col": 6,
+            "letter": "R"
+          },
+          {
+            "row": 4,
+            "col": 7,
+            "letter": "S"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "puzzleId": 6,
+    "layout": {
+      "placements": [
+        {
+          "word": "SPOON",
+          "row": 0,
+          "col": 1,
+          "direction": "vertical"
+        },
+        {
+          "word": "FORK",
+          "row": 2,
+          "col": 0,
+          "direction": "horizontal"
+        },
+        {
+          "word": "KNIFE",
+          "row": 4,
+          "col": 0,
+          "direction": "horizontal"
+        }
+      ],
+      "cells": [
+        {
+          "row": 0,
+          "col": 1,
+          "letter": "S"
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "letter": "P"
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "letter": "F"
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "letter": "O"
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "letter": "R"
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "letter": "K"
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "letter": "O"
+        },
+        {
+          "row": 4,
+          "col": 0,
+          "letter": "K"
+        },
+        {
+          "row": 4,
+          "col": 1,
+          "letter": "N"
+        },
+        {
+          "row": 4,
+          "col": 2,
+          "letter": "I"
+        },
+        {
+          "row": 4,
+          "col": 3,
+          "letter": "F"
+        },
+        {
+          "row": 4,
+          "col": 4,
+          "letter": "E"
+        }
+      ]
+    },
+    "chunks": [
+      {
+        "id": "chunk_0",
+        "cells": [
+          {
+            "row": 0,
+            "col": 1,
+            "letter": "S"
+          },
+          {
+            "row": 1,
+            "col": 1,
+            "letter": "P"
+          }
+        ]
+      },
+      {
+        "id": "chunk_1",
+        "cells": [
+          {
+            "row": 2,
+            "col": 0,
+            "letter": "F"
+          },
+          {
+            "row": 2,
+            "col": 1,
+            "letter": "O"
+          },
+          {
+            "row": 3,
+            "col": 1,
+            "letter": "O"
+          }
+        ]
+      },
+      {
+        "id": "chunk_2",
+        "cells": [
+          {
+            "row": 2,
+            "col": 2,
+            "letter": "R"
+          },
+          {
+            "row": 2,
+            "col": 3,
+            "letter": "K"
+          }
+        ]
+      },
+      {
+        "id": "chunk_3",
+        "cells": [
+          {
+            "row": 4,
+            "col": 0,
+            "letter": "K"
+          },
+          {
+            "row": 4,
+            "col": 1,
+            "letter": "N"
+          }
+        ]
+      },
+      {
+        "id": "chunk_4",
+        "cells": [
+          {
+            "row": 4,
+            "col": 2,
+            "letter": "I"
+          },
+          {
+            "row": 4,
+            "col": 3,
+            "letter": "F"
+          },
+          {
+            "row": 4,
+            "col": 4,
+            "letter": "E"
           }
         ]
       }

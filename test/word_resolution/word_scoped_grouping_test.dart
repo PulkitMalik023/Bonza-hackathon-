@@ -59,7 +59,7 @@ void main() {
   test(
     'JUPITER groups only contributing chunks when NEPTUNE TUNE chunk is adjacent',
     () {
-      final jupiterChunkIds = {'chunk_3', 'chunk_4', 'chunk_5'};
+      final jupiterChunkIds = {'chunk_4', 'chunk_5'};
       final pieces = <PuzzlePiece>[];
       var trayCol = 0;
 

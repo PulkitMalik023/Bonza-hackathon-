@@ -36,6 +36,7 @@ import 'widgets/puzzle_bottom_action_bar.dart';
 import 'widgets/puzzle_chunks_layer.dart';
 import 'widgets/puzzle_nature_background.dart';
 import 'widgets/puzzle_top_header.dart';
+import 'word_completion_fx_controller.dart';
 import 'hints/final_grid_hint_popup.dart';
 import 'how_to_play/how_to_play_popup.dart';
 import 'intro/puzzle_intro_animation_logger.dart';
@@ -63,6 +64,7 @@ class PuzzleScreen extends StatefulWidget {
 class _PuzzleScreenState extends State<PuzzleScreen> {
   final PuzzleRepository _puzzleRepository = PuzzleRepository();
   final PuzzleMoveHistory _moveHistory = PuzzleMoveHistory();
+  final WordCompletionFxController _wordCompletionFx = WordCompletionFxController();
 
   PuzzleAudioController get _audioController => PuzzleAudioController.instance;
 
@@ -350,6 +352,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     });
     _applyingUndo = false;
     _lastEvaluatedPiecesSnapshot = null;
+    _wordCompletionFx.seedCompletedWords(_completedAnswers);
   }
 
   void _openHowToPlay() {
@@ -445,6 +448,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     _interactionEnabled = false;
     _lastEvaluatedPiecesSnapshot = null;
     _moveHistory.clear();
+    _wordCompletionFx.reset();
     _clearActiveHint();
   }
 
@@ -564,7 +568,18 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       return;
     }
 
-    if (result.newlySolvedWordIds.isNotEmpty) {
+    final reward = _wordCompletionFx.rewardForNewlyCompletedWords(
+      result.completedAnswers,
+    );
+
+    if (reward != null) {
+      assert(() {
+        debugPrint(
+          '[WordCompletionFx] newlyCompleted=${reward.newlyCompletedWords.join(",")}',
+        );
+        return true;
+      }());
+
       if (result.puzzleComplete) {
         PuzzleHaptics.puzzleCompleted();
       } else {
