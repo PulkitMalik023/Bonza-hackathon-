@@ -1,3 +1,4 @@
+import '../../../../core/constants/board_constants.dart';
 import '../board_cell_position.dart';
 import '../completed_cluster_builder.dart';
 import '../completed_word_grouper.dart';
@@ -19,6 +20,8 @@ WordResolutionResult runInitialPuzzleResolution({
   required Set<String> solvedWordIds,
   required Set<String> reservedCellIds,
   required Map<String, SolvedAssignment> solvedAssignments,
+  int boardRows = BoardConstants.kPlayGridRows,
+  int boardCols = BoardConstants.kPlayGridCols,
 }) {
   logFlowStart(
     mode: 'INIT_RESOLUTION',
@@ -33,6 +36,8 @@ WordResolutionResult runInitialPuzzleResolution({
     solvedWordIds: solvedWordIds,
     reservedCellIds: reservedCellIds,
     solvedAssignments: solvedAssignments,
+    boardRows: boardRows,
+    boardCols: boardCols,
   );
 }
 
@@ -43,6 +48,8 @@ WordResolutionResult handlePuzzleStateAfterReconnect({
   required Set<String> solvedWordIds,
   required Set<String> reservedCellIds,
   required Map<String, SolvedAssignment> solvedAssignments,
+  int boardRows = BoardConstants.kPlayGridRows,
+  int boardCols = BoardConstants.kPlayGridCols,
 }) {
   logFlowStart(
     mode: 'POST_RECONNECT',
@@ -57,6 +64,8 @@ WordResolutionResult handlePuzzleStateAfterReconnect({
     solvedWordIds: solvedWordIds,
     reservedCellIds: reservedCellIds,
     solvedAssignments: solvedAssignments,
+    boardRows: boardRows,
+    boardCols: boardCols,
   );
 }
 
@@ -66,6 +75,8 @@ WordResolutionResult _resolveAndApplyConnectedLines({
   required Set<String> solvedWordIds,
   required Set<String> reservedCellIds,
   required Map<String, SolvedAssignment> solvedAssignments,
+  int boardRows = BoardConstants.kPlayGridRows,
+  int boardCols = BoardConstants.kPlayGridCols,
 }) {
   var updatedPieces = pieces;
   var updatedSolvedWordIds = {...solvedWordIds};
@@ -82,6 +93,8 @@ WordResolutionResult _resolveAndApplyConnectedLines({
       solvedWordIds: updatedSolvedWordIds,
       reservedCellIds: updatedReservedCellIds,
       solvedAssignments: updatedAssignments,
+      boardRows: boardRows,
+      boardCols: boardCols,
     );
 
     final candidates = scanCandidateWordsForWholeBoard(

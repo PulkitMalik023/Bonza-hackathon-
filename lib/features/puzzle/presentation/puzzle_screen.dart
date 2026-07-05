@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 
@@ -22,6 +21,7 @@ import '../domain/word_resolution/word_resolution_logger.dart';
 import '../domain/word_resolution/word_resolution_models.dart';
 import '../domain/word_resolution/word_resolution_service.dart';
 import '../domain/deconstructed_pieces_builder.dart';
+import '../domain/play_grid_size.dart';
 import '../domain/puzzle_board_state.dart';
 import '../domain/puzzle_hint_service.dart';
 import '../domain/puzzle_move_history.dart';
@@ -92,6 +92,26 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
   PuzzleLayout? get _currentLayout =>
       _layouts.isEmpty ? null : _layouts[_currentLayoutIndex];
+
+  int get _activeBoardRows {
+    if (_playCanvasRows > 0) {
+      return _playCanvasRows;
+    }
+    final layout = _currentLayout;
+    return layout == null
+        ? BoardConstants.kPlayGridRows
+        : computeMinimumPlayGridSize(layout).rows;
+  }
+
+  int get _activeBoardCols {
+    if (_playCanvasCols > 0) {
+      return _playCanvasCols;
+    }
+    final layout = _currentLayout;
+    return layout == null
+        ? BoardConstants.kPlayGridCols
+        : computeMinimumPlayGridSize(layout).cols;
+  }
 
   @override
   void initState() {
@@ -237,6 +257,8 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       solvedWordIds: _solvedWordIds,
       reservedCellIds: _reservedCellIds,
       solvedAssignments: _solvedAssignments,
+      boardRows: _activeBoardRows,
+      boardCols: _activeBoardCols,
     );
 
     _applyWordResolutionResult(result);
@@ -541,6 +563,8 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       solvedWordIds: _solvedWordIds,
       reservedCellIds: _reservedCellIds,
       solvedAssignments: _solvedAssignments,
+      boardRows: _activeBoardRows,
+      boardCols: _activeBoardCols,
     );
 
     if (result.hasChanges) {
@@ -694,9 +718,6 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       return const SizedBox.shrink();
     }
 
-    const boardRows = BoardConstants.kPlayGridRows;
-    const boardCols = BoardConstants.kPlayGridCols;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -713,12 +734,20 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                 final playableWidth = constraints.maxWidth;
                 final playableHeight = constraints.maxHeight;
 
-                const canvasRows = boardRows;
-                const canvasCols = boardCols;
+                final gridSize = computePlayGridSizeForViewport(
+                  layout: currentLayout,
+                  playableWidth: playableWidth,
+                  playableHeight: playableHeight,
+                );
+                final boardRows = gridSize.rows;
+                final boardCols = gridSize.cols;
+                final canvasRows = boardRows;
+                final canvasCols = boardCols;
 
-                final tileSize = min(
-                  playableWidth / canvasCols,
-                  playableHeight / canvasRows,
+                final tileSize = computePlayTileSize(
+                  gridSize: gridSize,
+                  playableWidth: playableWidth,
+                  playableHeight: playableHeight,
                 );
 
                 _schedulePlayCanvasUpdate(canvasRows, canvasCols);
