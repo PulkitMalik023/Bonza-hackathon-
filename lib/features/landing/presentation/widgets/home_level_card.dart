@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/audio/ui_button_sound.dart';
-import '../../../../core/category/category_icon_mapper.dart';
 import '../../../../core/constants/home_assets.dart';
 import '../../../../core/theme/puzzle_theme.dart';
 import '../../../../core/widgets/asset_icon.dart';
@@ -20,8 +19,6 @@ class HomeLevelCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final iconInfo = CategoryIconMapper.iconFor(category);
-
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -43,33 +40,10 @@ class HomeLevelCard extends StatelessWidget {
                 _LevelBadge(levelNumber: levelNumber),
                 const SizedBox(width: 14),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'LEVEL $levelNumber',
-                        style: PuzzleTheme.levelCardTitleStyle,
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          AssetIcon(
-                            assetPath: iconInfo.assetPath,
-                            fallbackIcon: iconInfo.fallbackIcon,
-                            size: 16,
-                            color: PuzzleTheme.levelCardCategoryText,
-                          ),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              category,
-                              style: PuzzleTheme.levelCardCategoryStyle,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                  child: Text(
+                    category,
+                    style: PuzzleTheme.levelCardTitleStyle,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 const SizedBox(width: 8),

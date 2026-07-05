@@ -20,7 +20,7 @@ void main() {
   });
 
   group('HomeLevelCard', () {
-    testWidgets('shows level number and category', (tester) async {
+    testWidgets('shows level number badge and category title', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -33,7 +33,7 @@ void main() {
         ),
       );
 
-      expect(find.text('LEVEL 4'), findsOneWidget);
+      expect(find.text('LEVEL 4'), findsNothing);
       expect(find.text('4'), findsOneWidget);
       expect(find.text('Fruits'), findsOneWidget);
     });
@@ -53,7 +53,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.text('LEVEL 1'));
+      await tester.tap(find.text('Directions'));
       await tester.pump();
 
       expect(tapped, isTrue);

@@ -44,17 +44,17 @@ void main() {
     );
   }
 
-  test('rejects premature MARS when JUPI is not on board', () {
+  test('rejects premature MARS when MA chunk is not on board', () {
     final pieces = [
-      chunkAtLayout('chunk_2'),
+      chunkAtLayout('chunk_1'),
+      chunkAtLayout('chunk_3'),
       chunkAtLayout('chunk_4'),
-      chunkAtLayout('chunk_5'),
     ];
 
     final result = handlePuzzleStateAfterReconnect(
       pieces: pieces,
       metadata: planetsMetadata,
-      movedChunkIds: ['chunk_5'],
+      movedChunkIds: ['chunk_4'],
       solvedWordIds: const {},
       reservedCellIds: const {},
       solvedAssignments: const {},

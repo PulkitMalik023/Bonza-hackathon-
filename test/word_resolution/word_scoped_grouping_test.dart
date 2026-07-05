@@ -57,14 +57,14 @@ void main() {
   }
 
   test(
-    'JUPITER groups only contributing chunks when NEPTUNE TUNE chunk is adjacent',
+    'JUPITER groups only contributing chunks when NEPTUNE UNE chunk is adjacent',
     () {
-      final jupiterChunkIds = {'chunk_4', 'chunk_5'};
+      final jupiterChunkIds = {'chunk_3', 'chunk_4'};
       final pieces = <PuzzlePiece>[];
       var trayCol = 0;
 
       for (final chunkId in planetsMetadata.chunkById.keys) {
-        if (jupiterChunkIds.contains(chunkId) || chunkId == 'chunk_6') {
+        if (jupiterChunkIds.contains(chunkId) || chunkId == 'chunk_5') {
           pieces.add(chunkAtLayout(chunkId));
         } else {
           pieces.add(chunkAtSpawn(chunkId, trayCol));
@@ -75,7 +75,7 @@ void main() {
       final result = handlePuzzleStateAfterReconnect(
         pieces: pieces,
         metadata: planetsMetadata,
-        movedChunkIds: {...jupiterChunkIds, 'chunk_6'},
+        movedChunkIds: {...jupiterChunkIds, 'chunk_5'},
         solvedWordIds: const {},
         reservedCellIds: const {},
         solvedAssignments: const {},
@@ -90,16 +90,16 @@ void main() {
       expect(completedGroups.first.completedAnswers, contains('JUPITER'));
 
       final neptuneChunk = result.pieces
-          .where((piece) => !piece.isCompletedWordGroup && piece.chunkId == 'chunk_6')
+          .where((piece) => !piece.isCompletedWordGroup && piece.chunkId == 'chunk_5')
           .toList();
       expect(
         neptuneChunk,
         hasLength(1),
-        reason: 'Adjacent NEPTUNE TUNE chunk must remain a separate active piece',
+        reason: 'Adjacent NEPTUNE UNE chunk must remain a separate active piece',
       );
       expect(
         neptuneChunk.first.cells.map((cell) => cell.letter).toSet(),
-        containsAll(['T', 'U', 'N', 'E']),
+        containsAll(['U', 'N', 'E']),
       );
     },
   );
