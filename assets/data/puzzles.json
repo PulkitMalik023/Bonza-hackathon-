@@ -51,7 +51,7 @@
       "ROCK",
       "PAPER"
     ],
-    "enabled": true
+    "enabled": false
   },
   {
     "id": 6,
@@ -61,7 +61,7 @@
       "FORK",
       "KNIFE"
     ],
-    "enabled": true
+    "enabled": false
   },
   {
     "id": 8,

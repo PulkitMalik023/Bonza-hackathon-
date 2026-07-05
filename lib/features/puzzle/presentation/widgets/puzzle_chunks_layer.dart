@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -13,7 +11,6 @@ import '../../domain/puzzle_solved_checker.dart';
 import '../../domain/word_completion_debug.dart';
 import '../intro/puzzle_chunk_intro_coordinator.dart';
 import 'puzzle_piece_content.dart';
-import 'word_completion_burst.dart';
 
 export '../../domain/chunk_drop_evaluator.dart' show canPlaceOnBoard;
 
@@ -36,7 +33,6 @@ class PuzzleChunksLayer extends StatefulWidget {
     this.onDragStart,
     this.onDragEnd,
     this.hintHighlightedPieceIds = const {},
-    this.wordCompletionBurstEnabled = true,
   });
 
   final int boardRows;
@@ -53,7 +49,6 @@ class PuzzleChunksLayer extends StatefulWidget {
   final VoidCallback? onDragStart;
   final VoidCallback? onDragEnd;
   final Set<String> hintHighlightedPieceIds;
-  final bool wordCompletionBurstEnabled;
 
   @override
   State<PuzzleChunksLayer> createState() => _PuzzleChunksLayerState();
@@ -63,7 +58,6 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer>
     with SingleTickerProviderStateMixin {
   final GlobalKey _stackKey = GlobalKey();
   final BoardOccupancy _occupancy = BoardOccupancy();
-  final Set<String> _animatedCompletedGroupIds = {};
 
   late List<PuzzlePiece> _pieces;
   String? _draggedPieceId;
@@ -172,10 +166,6 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer>
     final piecesChanged = oldWidget.pieces != widget.pieces;
 
     if (oldWidget.pieces != widget.pieces) {
-      _trackNewCompletedGroups(oldWidget.pieces, widget.pieces);
-      if (!widget.wordCompletionBurstEnabled) {
-        _animatedCompletedGroupIds.clear();
-      }
       _pieces = _clonePieces(widget.pieces);
       _rebuildOccupancy();
       if (_draggedPieceId == null) {
@@ -214,23 +204,6 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer>
           ),
         )
         .toList();
-  }
-
-  void _trackNewCompletedGroups(
-    List<PuzzlePiece> previousPieces,
-    List<PuzzlePiece> nextPieces,
-  ) {
-    final previousGroupIds = previousPieces
-        .where((piece) => piece.isCompletedWordGroup)
-        .map((piece) => piece.id)
-        .toSet();
-
-    for (final piece in nextPieces) {
-      if (piece.isCompletedWordGroup &&
-          !previousGroupIds.contains(piece.id)) {
-        _animatedCompletedGroupIds.add(piece.id);
-      }
-    }
   }
 
   void _rebuildOccupancy() {
@@ -443,11 +416,6 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer>
         ? (_liveDragTopLeft?.dy ?? anchorTopLeft.dy)
         : anchorTopLeft.dy;
     final pieceSize = _pieceSize(piece);
-    final shouldAnimateCompletedGroup =
-        piece.isCompletedWordGroup &&
-        _animatedCompletedGroupIds.contains(piece.id);
-    final shouldPlayCompletionBurst =
-        shouldAnimateCompletedGroup && widget.wordCompletionBurstEnabled;
 
     final introValues = _introCoordinator?.values[piece.id];
     final isIntroPiece =
@@ -499,50 +467,6 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer>
       );
     }
 
-    final animatedContent = shouldPlayCompletionBurst
-        ? Stack(
-            clipBehavior: Clip.none,
-            children: [
-              TweenAnimationBuilder<double>(
-                key: ValueKey('completed_burst_${piece.id}'),
-                tween: Tween<double>(begin: 0, end: 1),
-                duration: const Duration(milliseconds: 350),
-                curve: Curves.easeOut,
-                builder: (context, progress, _) {
-                  final scale = 1 + sin(progress * pi) * 0.08;
-
-                  return Transform.scale(
-                    scale: scale,
-                    child: isIntroPiece
-                        ? pieceContent
-                        : _buildPieceContent(
-                            piece: piece,
-                            isActive: isActive,
-                            isHintHighlighted: isHintHighlighted,
-                            pieceSize: pieceSize,
-                            isDragging: isActive,
-                            connectionSeamOpacity: 1 - progress,
-                          ),
-                  );
-                },
-              ),
-              WordCompletionBurst(
-                key: ValueKey('completed_burst_particles_${piece.id}'),
-                width: pieceSize.width,
-                height: pieceSize.height,
-                onComplete: () {
-                  if (!mounted) {
-                    return;
-                  }
-                  setState(() {
-                    _animatedCompletedGroupIds.remove(piece.id);
-                  });
-                },
-              ),
-            ],
-          )
-        : pieceContent;
-
     return Positioned(
       key: ValueKey(piece.id),
       left: left,
@@ -559,7 +483,7 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer>
           onPanUpdate: (details) => _onPanUpdate(piece, details),
           onPanEnd: (_) => _onPanEnd(piece),
           onPanCancel: () => _onPanEnd(piece),
-          child: animatedContent,
+          child: pieceContent,
         ),
       ),
     );
