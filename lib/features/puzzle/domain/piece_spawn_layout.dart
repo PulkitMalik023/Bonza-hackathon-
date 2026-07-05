@@ -7,8 +7,11 @@ import 'board_geometry.dart';
 import 'chunk_drop_evaluator.dart';
 import 'puzzle_piece.dart';
 
-const _colGap = 1;
-const _rowGap = 1;
+/// Minimum empty grid cells between any two chunk tiles at spawn.
+const kSpawnSeparationCells = 1;
+
+const _colGap = 2;
+const _rowGap = 2;
 const _maxRandomAttemptsPerPiece = 200;
 
 /// Result of random scatter placement.
@@ -90,54 +93,94 @@ RandomScatterResult computeRandomScatter({
   }
 
   final rng = random ?? Random();
-  final order = List<int>.generate(pieces.length, (index) => index)..shuffle(rng);
+
+  final separated = _tryScatterWithBuffer(
+    pieces: pieces,
+    canvasRows: canvasRows,
+    canvasCols: canvasCols,
+    random: rng,
+    separationCells: kSpawnSeparationCells,
+  );
+  if (separated != null) {
+    return RandomScatterResult(
+      anchors: separated,
+      mode: ScatterPlacementMode.random,
+    );
+  }
+
+  final tight = _tryScatterWithBuffer(
+    pieces: pieces,
+    canvasRows: canvasRows,
+    canvasCols: canvasCols,
+    random: rng,
+    separationCells: 0,
+  );
+  if (tight != null) {
+    return RandomScatterResult(
+      anchors: tight,
+      mode: ScatterPlacementMode.random,
+    );
+  }
+
+  if (kDebugMode) {
+    debugPrint(
+      '[PieceSpawnLayout] Random scatter failed for all pieces; '
+      'falling back to tray layout',
+    );
+  }
+
+  return RandomScatterResult(
+    anchors: computePieceSpawnAnchors(
+      pieces: pieces,
+      canvasRows: canvasRows,
+      canvasCols: canvasCols,
+    ),
+    mode: ScatterPlacementMode.trayFallback,
+  );
+}
+
+List<BoardCellPosition>? _tryScatterWithBuffer({
+  required List<PuzzlePiece> pieces,
+  required int canvasRows,
+  required int canvasCols,
+  required Random random,
+  required int separationCells,
+}) {
+  final order = List<int>.generate(pieces.length, (index) => index)
+    ..shuffle(random);
   final anchors = List<BoardCellPosition?>.filled(pieces.length, null);
   final placedPieces = <PuzzlePiece>[];
 
   for (final index in order) {
     final piece = pieces[index];
     final anchor = _findRandomScatterAnchor(
-      piece: piece,
-      canvasRows: canvasRows,
-      canvasCols: canvasCols,
-      placedPieces: placedPieces,
-      random: rng,
-    ) ??
+          piece: piece,
+          canvasRows: canvasRows,
+          canvasCols: canvasCols,
+          placedPieces: placedPieces,
+          random: random,
+          separationCells: separationCells,
+        ) ??
         _findExhaustiveScatterAnchor(
           piece: piece,
           canvasRows: canvasRows,
           canvasCols: canvasCols,
           placedPieces: placedPieces,
+          separationCells: separationCells,
         );
 
     if (anchor == null) {
-      if (kDebugMode) {
-        debugPrint(
-          '[PieceSpawnLayout] Random scatter failed for ${piece.id}; '
-          'falling back to tray layout',
-        );
-      }
-      return RandomScatterResult(
-        anchors: computePieceSpawnAnchors(
-          pieces: pieces,
-          canvasRows: canvasRows,
-          canvasCols: canvasCols,
-        ),
-        mode: ScatterPlacementMode.trayFallback,
-      );
+      return null;
     }
 
     anchors[index] = anchor;
     placedPieces.add(_pieceAtAnchor(piece, anchor));
   }
 
-  return RandomScatterResult(
-    anchors: [
-      for (final anchor in anchors)
-        anchor ?? const BoardCellPosition(row: 0, col: 0),
-    ],
-    mode: ScatterPlacementMode.random,
-  );
+  return [
+    for (final anchor in anchors)
+      anchor ?? const BoardCellPosition(row: 0, col: 0),
+  ];
 }
 
 BoardCellPosition? _findRandomScatterAnchor({
@@ -146,6 +189,7 @@ BoardCellPosition? _findRandomScatterAnchor({
   required int canvasCols,
   required List<PuzzlePiece> placedPieces,
   required Random random,
+  required int separationCells,
 }) {
   final size = pieceGridSize(piece);
   final maxRow = canvasRows - size.height.toInt();
@@ -154,22 +198,36 @@ BoardCellPosition? _findRandomScatterAnchor({
     return null;
   }
 
+  BoardCellPosition? bestAnchor;
+  var bestMinDistance = -1.0;
+
   for (var attempt = 0; attempt < _maxRandomAttemptsPerPiece; attempt++) {
     final row = maxRow == 0 ? 0 : random.nextInt(maxRow + 1);
     final col = maxCol == 0 ? 0 : random.nextInt(maxCol + 1);
     final anchor = BoardCellPosition(row: row, col: col);
-    if (_canScatterPieceAt(
+    if (!_canScatterPieceAt(
       piece: piece,
       anchor: anchor,
       canvasRows: canvasRows,
       canvasCols: canvasCols,
       placedPieces: placedPieces,
+      separationCells: separationCells,
     )) {
-      return anchor;
+      continue;
+    }
+
+    final minDistance = _minDistanceToPlacedPieces(
+      piece: piece,
+      anchor: anchor,
+      placedPieces: placedPieces,
+    );
+    if (minDistance > bestMinDistance) {
+      bestMinDistance = minDistance;
+      bestAnchor = anchor;
     }
   }
 
-  return null;
+  return bestAnchor;
 }
 
 BoardCellPosition? _findExhaustiveScatterAnchor({
@@ -177,6 +235,7 @@ BoardCellPosition? _findExhaustiveScatterAnchor({
   required int canvasRows,
   required int canvasCols,
   required List<PuzzlePiece> placedPieces,
+  required int separationCells,
 }) {
   final size = pieceGridSize(piece);
   final maxRow = canvasRows - size.height.toInt();
@@ -185,22 +244,36 @@ BoardCellPosition? _findExhaustiveScatterAnchor({
     return null;
   }
 
+  BoardCellPosition? bestAnchor;
+  var bestMinDistance = -1.0;
+
   for (var row = 0; row <= maxRow; row++) {
     for (var col = 0; col <= maxCol; col++) {
       final anchor = BoardCellPosition(row: row, col: col);
-      if (_canScatterPieceAt(
+      if (!_canScatterPieceAt(
         piece: piece,
         anchor: anchor,
         canvasRows: canvasRows,
         canvasCols: canvasCols,
         placedPieces: placedPieces,
+        separationCells: separationCells,
       )) {
-        return anchor;
+        continue;
+      }
+
+      final minDistance = _minDistanceToPlacedPieces(
+        piece: piece,
+        anchor: anchor,
+        placedPieces: placedPieces,
+      );
+      if (minDistance > bestMinDistance) {
+        bestMinDistance = minDistance;
+        bestAnchor = anchor;
       }
     }
   }
 
-  return null;
+  return bestAnchor;
 }
 
 bool _canScatterPieceAt({
@@ -209,15 +282,90 @@ bool _canScatterPieceAt({
   required int canvasRows,
   required int canvasCols,
   required List<PuzzlePiece> placedPieces,
+  required int separationCells,
 }) {
-  return canPlaceOnBoard(
+  if (!canPlaceOnBoard(
     movingPiece: piece,
     targetAnchorRow: anchor.row,
     targetAnchorCol: anchor.col,
     boardRows: canvasRows,
     boardCols: canvasCols,
     pieces: placedPieces,
+  )) {
+    return false;
+  }
+
+  if (separationCells <= 0) {
+    return true;
+  }
+
+  final candidateBuffer = _occupiedCellsWithBuffer(
+    piece.getOccupiedCellsAt(anchor.row, anchor.col),
+    separationCells,
   );
+
+  for (final placedPiece in placedPieces) {
+    final placedBuffer = _occupiedCellsWithBuffer(
+      placedPiece.getOccupiedCells(),
+      separationCells,
+    );
+    for (final cell in candidateBuffer) {
+      if (placedBuffer.contains(cell)) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+Set<BoardCellPosition> _occupiedCellsWithBuffer(
+  Iterable<BoardCellPosition> cells,
+  int buffer,
+) {
+  if (buffer <= 0) {
+    return cells.toSet();
+  }
+
+  final expanded = <BoardCellPosition>{};
+  for (final cell in cells) {
+    for (var row = cell.row - buffer; row <= cell.row + buffer; row++) {
+      for (var col = cell.col - buffer; col <= cell.col + buffer; col++) {
+        expanded.add(BoardCellPosition(row: row, col: col));
+      }
+    }
+  }
+
+  return expanded;
+}
+
+double _minDistanceToPlacedPieces({
+  required PuzzlePiece piece,
+  required BoardCellPosition anchor,
+  required List<PuzzlePiece> placedPieces,
+}) {
+  if (placedPieces.isEmpty) {
+    return double.infinity;
+  }
+
+  final candidateCells = piece.getOccupiedCellsAt(anchor.row, anchor.col);
+  var minDistance = double.infinity;
+
+  for (final placedPiece in placedPieces) {
+    for (final placedCell in placedPiece.getOccupiedCells()) {
+      for (final candidateCell in candidateCells) {
+        final distance = max(
+          (candidateCell.row - placedCell.row).abs(),
+          (candidateCell.col - placedCell.col).abs(),
+        ).toDouble();
+        if (distance < minDistance) {
+          minDistance = distance;
+        }
+      }
+    }
+  }
+
+  return minDistance;
 }
 
 PuzzlePiece _pieceAtAnchor(PuzzlePiece piece, BoardCellPosition anchor) {
@@ -258,6 +406,41 @@ List<PuzzlePiece> applySpawnAnchors(
   }
 
   return spawned;
+}
+
+/// Returns true when every pair of occupied cells from different pieces has
+/// Chebyshev distance greater than [separationCells].
+bool piecesHaveSpawnSeparation({
+  required List<PuzzlePiece> pieces,
+  int separationCells = kSpawnSeparationCells,
+}) {
+  if (separationCells <= 0 || pieces.length < 2) {
+    return true;
+  }
+
+  final occupiedByPiece = <String, List<BoardCellPosition>>{};
+  for (final piece in pieces) {
+    occupiedByPiece[piece.id] = piece.getOccupiedCells();
+  }
+
+  final pieceIds = occupiedByPiece.keys.toList();
+  for (var i = 0; i < pieceIds.length; i++) {
+    for (var j = i + 1; j < pieceIds.length; j++) {
+      for (final cellA in occupiedByPiece[pieceIds[i]]!) {
+        for (final cellB in occupiedByPiece[pieceIds[j]]!) {
+          final distance = max(
+            (cellA.row - cellB.row).abs(),
+            (cellA.col - cellB.col).abs(),
+          );
+          if (distance <= separationCells) {
+            return false;
+          }
+        }
+      }
+    }
+  }
+
+  return true;
 }
 
 /// Returns true when no two pieces occupy the same board cell at their anchors.
