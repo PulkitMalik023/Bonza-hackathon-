@@ -139,6 +139,125 @@ void main() {
     );
   });
 
+  test('accepts Spectrum-style IAN chunk with separate lone N', () {
+    final layout = PuzzleLayout.fromPlacedWords(const [
+      PlacedWord(
+        word: 'ORANGE',
+        row: 4,
+        col: 1,
+        direction: WordDirection.horizontal,
+      ),
+      PlacedWord(
+        word: 'INDIGO',
+        row: 3,
+        col: 4,
+        direction: WordDirection.vertical,
+      ),
+      PlacedWord(
+        word: 'GREEN',
+        row: 2,
+        col: 6,
+        direction: WordDirection.vertical,
+      ),
+    ]);
+
+    final deconstructed = DeconstructedPuzzle(
+      sourceLayout: layout,
+      chunks: [
+        PuzzleChunk(
+          id: 'chunk_ian',
+          solvedCells: {
+            BoardCellPosition(row: 3, col: 4): 'I',
+            BoardCellPosition(row: 4, col: 3): 'A',
+            BoardCellPosition(row: 4, col: 4): 'N',
+          },
+          localCells: {
+            BoardCellPosition(row: 0, col: 1): 'I',
+            BoardCellPosition(row: 1, col: 0): 'A',
+            BoardCellPosition(row: 1, col: 1): 'N',
+          },
+          solvedMinRow: 3,
+          solvedMinCol: 3,
+          solvedMaxRow: 4,
+          solvedMaxCol: 4,
+          width: 2,
+          height: 2,
+        ),
+        PuzzleChunk(
+          id: 'chunk_lone_n',
+          solvedCells: {
+            BoardCellPosition(row: 6, col: 6): 'N',
+          },
+          localCells: {
+            BoardCellPosition(row: 0, col: 0): 'N',
+          },
+          solvedMinRow: 6,
+          solvedMinCol: 6,
+          solvedMaxRow: 6,
+          solvedMaxCol: 6,
+          width: 1,
+          height: 1,
+        ),
+      ],
+    );
+
+    expect(
+      validator.isValid(layout: layout, deconstructed: deconstructed),
+      isTrue,
+    );
+    expect(
+      validator.hasSingletonAndMultiCellLetterConflict(deconstructed),
+      isFalse,
+    );
+  });
+
+  test('rejects singleton chunk at crossword crossing', () {
+    final layout = PuzzleLayout.fromPlacedWords(const [
+      PlacedWord(
+        word: 'ORANGE',
+        row: 1,
+        col: 0,
+        direction: WordDirection.horizontal,
+      ),
+      PlacedWord(
+        word: 'INDIGO',
+        row: 0,
+        col: 3,
+        direction: WordDirection.vertical,
+      ),
+    ]);
+
+    final deconstructed = DeconstructedPuzzle(
+      sourceLayout: layout,
+      chunks: [
+        PuzzleChunk(
+          id: 'chunk_lone_n',
+          solvedCells: {
+            BoardCellPosition(row: 1, col: 3): 'N',
+          },
+          localCells: {
+            BoardCellPosition(row: 0, col: 0): 'N',
+          },
+          solvedMinRow: 1,
+          solvedMinCol: 3,
+          solvedMaxRow: 1,
+          solvedMaxCol: 3,
+          width: 1,
+          height: 1,
+        ),
+      ],
+    );
+
+    expect(
+      validator.isValid(layout: layout, deconstructed: deconstructed),
+      isFalse,
+    );
+    expect(
+      validator.hasCrossingCellsInSingletonChunks(layout, deconstructed),
+      isTrue,
+    );
+  });
+
   test('DIRECTIONS has at least one layout with valid deconstruction', () {
     final layouts = PuzzleLayoutGenerator()
         .generateAllLayouts(['NORTH', 'SOUTH', 'EAST', 'WEST']);

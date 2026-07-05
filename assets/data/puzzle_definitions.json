@@ -2781,5 +2781,418 @@
         ]
       }
     ]
+  },
+  {
+    "puzzleId": 12,
+    "layout": {
+      "placements": [
+        {
+          "word": "YELLOW",
+          "row": 0,
+          "col": 1,
+          "direction": "vertical"
+        },
+        {
+          "word": "BLUE",
+          "row": 2,
+          "col": 0,
+          "direction": "horizontal"
+        },
+        {
+          "word": "ORANGE",
+          "row": 4,
+          "col": 1,
+          "direction": "horizontal"
+        },
+        {
+          "word": "INDIGO",
+          "row": 3,
+          "col": 4,
+          "direction": "vertical"
+        },
+        {
+          "word": "GREEN",
+          "row": 2,
+          "col": 6,
+          "direction": "vertical"
+        },
+        {
+          "word": "RED",
+          "row": 3,
+          "col": 6,
+          "direction": "horizontal"
+        },
+        {
+          "word": "VIOLET",
+          "row": 8,
+          "col": 2,
+          "direction": "horizontal"
+        }
+      ],
+      "cells": [
+        {
+          "row": 0,
+          "col": 1,
+          "letter": "Y"
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "letter": "E"
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "letter": "B"
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "letter": "L"
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "letter": "U"
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "letter": "E"
+        },
+        {
+          "row": 2,
+          "col": 6,
+          "letter": "G"
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "letter": "L"
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "letter": "I"
+        },
+        {
+          "row": 3,
+          "col": 6,
+          "letter": "R"
+        },
+        {
+          "row": 3,
+          "col": 7,
+          "letter": "E"
+        },
+        {
+          "row": 3,
+          "col": 8,
+          "letter": "D"
+        },
+        {
+          "row": 4,
+          "col": 1,
+          "letter": "O"
+        },
+        {
+          "row": 4,
+          "col": 2,
+          "letter": "R"
+        },
+        {
+          "row": 4,
+          "col": 3,
+          "letter": "A"
+        },
+        {
+          "row": 4,
+          "col": 4,
+          "letter": "N"
+        },
+        {
+          "row": 4,
+          "col": 5,
+          "letter": "G"
+        },
+        {
+          "row": 4,
+          "col": 6,
+          "letter": "E"
+        },
+        {
+          "row": 5,
+          "col": 1,
+          "letter": "W"
+        },
+        {
+          "row": 5,
+          "col": 4,
+          "letter": "D"
+        },
+        {
+          "row": 5,
+          "col": 6,
+          "letter": "E"
+        },
+        {
+          "row": 6,
+          "col": 4,
+          "letter": "I"
+        },
+        {
+          "row": 6,
+          "col": 6,
+          "letter": "N"
+        },
+        {
+          "row": 7,
+          "col": 4,
+          "letter": "G"
+        },
+        {
+          "row": 8,
+          "col": 2,
+          "letter": "V"
+        },
+        {
+          "row": 8,
+          "col": 3,
+          "letter": "I"
+        },
+        {
+          "row": 8,
+          "col": 4,
+          "letter": "O"
+        },
+        {
+          "row": 8,
+          "col": 5,
+          "letter": "L"
+        },
+        {
+          "row": 8,
+          "col": 6,
+          "letter": "E"
+        },
+        {
+          "row": 8,
+          "col": 7,
+          "letter": "T"
+        }
+      ]
+    },
+    "chunks": [
+      {
+        "id": "chunk_0",
+        "cells": [
+          {
+            "row": 0,
+            "col": 1,
+            "letter": "Y"
+          },
+          {
+            "row": 1,
+            "col": 1,
+            "letter": "E"
+          },
+          {
+            "row": 2,
+            "col": 0,
+            "letter": "B"
+          },
+          {
+            "row": 2,
+            "col": 1,
+            "letter": "L"
+          }
+        ]
+      },
+      {
+        "id": "chunk_1",
+        "cells": [
+          {
+            "row": 6,
+            "col": 6,
+            "letter": "N"
+          }
+        ]
+      },
+      {
+        "id": "chunk_2",
+        "cells": [
+          {
+            "row": 3,
+            "col": 4,
+            "letter": "I"
+          },
+          {
+            "row": 4,
+            "col": 3,
+            "letter": "A"
+          },
+          {
+            "row": 4,
+            "col": 4,
+            "letter": "N"
+          }
+        ]
+      },
+      {
+        "id": "chunk_3",
+        "cells": [
+          {
+            "row": 8,
+            "col": 6,
+            "letter": "E"
+          },
+          {
+            "row": 8,
+            "col": 7,
+            "letter": "T"
+          }
+        ]
+      },
+      {
+        "id": "chunk_4",
+        "cells": [
+          {
+            "row": 4,
+            "col": 5,
+            "letter": "G"
+          },
+          {
+            "row": 4,
+            "col": 6,
+            "letter": "E"
+          },
+          {
+            "row": 5,
+            "col": 6,
+            "letter": "E"
+          }
+        ]
+      },
+      {
+        "id": "chunk_5",
+        "cells": [
+          {
+            "row": 8,
+            "col": 2,
+            "letter": "V"
+          },
+          {
+            "row": 8,
+            "col": 3,
+            "letter": "I"
+          }
+        ]
+      },
+      {
+        "id": "chunk_6",
+        "cells": [
+          {
+            "row": 2,
+            "col": 2,
+            "letter": "U"
+          },
+          {
+            "row": 2,
+            "col": 3,
+            "letter": "E"
+          }
+        ]
+      },
+      {
+        "id": "chunk_7",
+        "cells": [
+          {
+            "row": 2,
+            "col": 6,
+            "letter": "G"
+          },
+          {
+            "row": 3,
+            "col": 6,
+            "letter": "R"
+          }
+        ]
+      },
+      {
+        "id": "chunk_8",
+        "cells": [
+          {
+            "row": 3,
+            "col": 7,
+            "letter": "E"
+          },
+          {
+            "row": 3,
+            "col": 8,
+            "letter": "D"
+          }
+        ]
+      },
+      {
+        "id": "chunk_9",
+        "cells": [
+          {
+            "row": 5,
+            "col": 4,
+            "letter": "D"
+          },
+          {
+            "row": 6,
+            "col": 4,
+            "letter": "I"
+          }
+        ]
+      },
+      {
+        "id": "chunk_10",
+        "cells": [
+          {
+            "row": 3,
+            "col": 1,
+            "letter": "L"
+          },
+          {
+            "row": 4,
+            "col": 1,
+            "letter": "O"
+          },
+          {
+            "row": 4,
+            "col": 2,
+            "letter": "R"
+          },
+          {
+            "row": 5,
+            "col": 1,
+            "letter": "W"
+          }
+        ]
+      },
+      {
+        "id": "chunk_11",
+        "cells": [
+          {
+            "row": 7,
+            "col": 4,
+            "letter": "G"
+          },
+          {
+            "row": 8,
+            "col": 4,
+            "letter": "O"
+          },
+          {
+            "row": 8,
+            "col": 5,
+            "letter": "L"
+          }
+        ]
+      }
+    ]
   }
 ]

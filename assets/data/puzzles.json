@@ -51,7 +51,7 @@
       "ROCK",
       "PAPER"
     ],
-    "enabled": false
+    "enabled": true
   },
   {
     "id": 6,
@@ -61,7 +61,7 @@
       "FORK",
       "KNIFE"
     ],
-    "enabled": false
+    "enabled": true
   },
   {
     "id": 7,
@@ -115,6 +115,20 @@
       "SQUARE",
       "TRIANGLE",
       "CIRCLE"
+    ],
+    "enabled": true
+  },
+  {
+    "id": 12,
+    "category": "Spectrum",
+    "words": [
+      "YELLOW",
+      "BLUE",
+      "ORANGE",
+      "INDIGO",
+      "GREEN",
+      "RED",
+      "VIOLET"
     ],
     "enabled": true
   }

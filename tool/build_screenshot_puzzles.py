@@ -229,6 +229,35 @@ PUZZLES = [
             [(9, 3, "O"), (10, 3, "N")],
         ],
     },
+    {
+        "id": 12,
+        "category": "Spectrum",
+        "words": ["YELLOW", "BLUE", "ORANGE", "INDIGO", "GREEN", "RED", "VIOLET"],
+        "enabled": True,
+        "placements": [
+            Placement("YELLOW", 0, 1, Dir.V),
+            Placement("BLUE", 2, 0, Dir.H),
+            Placement("ORANGE", 4, 1, Dir.H),
+            Placement("INDIGO", 3, 4, Dir.V),
+            Placement("GREEN", 2, 6, Dir.V),
+            Placement("RED", 3, 6, Dir.H),
+            Placement("VIOLET", 8, 2, Dir.H),
+        ],
+        "chunks": [
+            [(0, 1, "Y"), (1, 1, "E"), (2, 0, "B"), (2, 1, "L")],
+            [(6, 6, "N")],
+            [(3, 4, "I"), (4, 3, "A"), (4, 4, "N")],
+            [(8, 6, "E"), (8, 7, "T")],
+            [(4, 5, "G"), (4, 6, "E"), (5, 6, "E")],
+            [(8, 2, "V"), (8, 3, "I")],
+            [(2, 2, "U"), (2, 3, "E")],
+            [(2, 6, "G"), (3, 6, "R")],
+            [(3, 7, "E"), (3, 8, "D")],
+            [(5, 4, "D"), (6, 4, "I")],
+            [(3, 1, "L"), (4, 1, "O"), (4, 2, "R"), (5, 1, "W")],
+            [(7, 4, "G"), (8, 4, "O"), (8, 5, "L")],
+        ],
+    },
 ]
 
 

@@ -13,8 +13,7 @@ class DeconstructionQualityValidator {
     required PuzzleLayout layout,
     required DeconstructedPuzzle deconstructed,
   }) {
-    return !hasSingletonChunks(deconstructed) &&
-        !hasDuplicateChunkSignatures(deconstructed) &&
+    return !hasDuplicateChunkSignatures(deconstructed) &&
         !hasSingletonAndMultiCellLetterConflict(deconstructed) &&
         !hasCrossingCellsInSingletonChunks(layout, deconstructed);
   }
@@ -34,27 +33,32 @@ class DeconstructionQualityValidator {
     return false;
   }
 
-  /// Rule 1: if a letter appears in any multi-cell chunk, it must not also
-  /// appear in a single-cell chunk anywhere in the puzzle.
+  /// Flags when a singleton letter also appears as a peelable leaf in a
+  /// multi-cell chunk (e.g. ST + lone T), but allows cases like Spectrum's
+  /// lone N + IAN where N is not a leaf in the multi-cell chunk.
   bool hasSingletonAndMultiCellLetterConflict(DeconstructedPuzzle deconstructed) {
-    final lettersInMultiCellChunks = <String>{};
-    final lettersInSingleCellChunks = <String>{};
-
     for (final chunk in deconstructed.chunks) {
-      final letters = chunk.solvedCells.values
-          .map((letter) => letter.toUpperCase())
-          .toSet();
-
-      if (chunk.solvedCells.length > 1) {
-        lettersInMultiCellChunks.addAll(letters);
-      } else if (chunk.solvedCells.length == 1) {
-        lettersInSingleCellChunks.add(letters.single);
+      if (chunk.solvedCells.length != 1) {
+        continue;
       }
-    }
 
-    for (final letter in lettersInSingleCellChunks) {
-      if (lettersInMultiCellChunks.contains(letter)) {
-        return true;
+      final singletonLetter =
+          chunk.solvedCells.values.single.toUpperCase();
+
+      for (final other in deconstructed.chunks) {
+        if (other.solvedCells.length <= 1) {
+          continue;
+        }
+
+        for (final entry in other.solvedCells.entries) {
+          if (entry.value.toUpperCase() != singletonLetter) {
+            continue;
+          }
+
+          if (_isLeafCell(entry.key, other.solvedCells.keys)) {
+            return true;
+          }
+        }
       }
     }
 
@@ -80,6 +84,31 @@ class DeconstructionQualityValidator {
     }
 
     return false;
+  }
+
+  bool _isLeafCell(
+    BoardCellPosition position,
+    Iterable<BoardCellPosition> chunkCells,
+  ) {
+    final cellSet = chunkCells.toSet();
+    var neighborCount = 0;
+
+    for (final delta in const [
+      (0, 1),
+      (0, -1),
+      (1, 0),
+      (-1, 0),
+    ]) {
+      final neighbor = BoardCellPosition(
+        row: position.row + delta.$1,
+        col: position.col + delta.$2,
+      );
+      if (cellSet.contains(neighbor)) {
+        neighborCount++;
+      }
+    }
+
+    return neighborCount <= 1;
   }
 
   Set<BoardCellPosition> _crossingPositions(PuzzleLayout layout) {

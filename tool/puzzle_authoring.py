@@ -91,8 +91,6 @@ def validate_puzzle(
 
     assigned: set[tuple[int, int]] = set()
     signatures: list[str] = []
-    multi_letters: set[str] = set()
-    single_letters: set[str] = set()
 
     crossings: set[tuple[int, int]] = set()
     pos_count: dict[tuple[int, int], int] = {}
@@ -123,11 +121,7 @@ def validate_puzzle(
             raise ValueError(f"Puzzle {puzzle_id} duplicate signature {sig}")
         signatures.append(sig)
 
-        letters = {ch.upper() for _, _, ch in chunk}
-        if len(chunk) > 1:
-            multi_letters |= letters
-        else:
-            single_letters |= letters
+        if len(chunk) == 1:
             pos = next(iter(coords))
             if pos in crossings:
                 raise ValueError(f"Puzzle {puzzle_id} singleton at crossing {coords}")
@@ -136,8 +130,41 @@ def validate_puzzle(
         missing = all_cells - assigned
         raise ValueError(f"Puzzle {puzzle_id} incomplete coverage: {sorted(missing)}")
 
-    if single_letters & multi_letters:
-        raise ValueError(f"Puzzle {puzzle_id} ambiguous letters: {single_letters & multi_letters}")
+    _validate_singleton_letter_conflicts(puzzle_id, chunks)
+
+
+def _chunk_neighbors(
+    row: int, col: int, coords: set[tuple[int, int]]
+) -> int:
+    count = 0
+    for dr, dc in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+        if (row + dr, col + dc) in coords:
+            count += 1
+    return count
+
+
+def _validate_singleton_letter_conflicts(
+    puzzle_id: int,
+    chunks: list[list[tuple[int, int, str]]],
+) -> None:
+    for i, chunk in enumerate(chunks):
+        if len(chunk) != 1:
+            continue
+
+        singleton_letter = chunk[0][2].upper()
+
+        for j, other in enumerate(chunks):
+            if len(other) <= 1:
+                continue
+
+            coords = {(r, c) for r, c, _ in other}
+            for row, col, letter in other:
+                if letter.upper() != singleton_letter:
+                    continue
+                if _chunk_neighbors(row, col, coords) <= 1:
+                    raise ValueError(
+                        f"Puzzle {puzzle_id} ambiguous letters: {singleton_letter}"
+                    )
 
 
 def make_definition(
