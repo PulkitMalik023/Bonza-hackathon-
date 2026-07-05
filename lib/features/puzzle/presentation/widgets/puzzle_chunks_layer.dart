@@ -8,12 +8,10 @@ import '../../domain/board_geometry.dart';
 import '../../domain/board_occupancy.dart';
 import '../../domain/chunk_drop_evaluator.dart';
 import '../../domain/puzzle_board_state.dart';
-import '../../domain/puzzle_complete_ripple.dart';
 import '../../domain/puzzle_piece.dart';
 import '../../domain/puzzle_solved_checker.dart';
 import '../../domain/word_completion_debug.dart';
 import '../intro/puzzle_chunk_intro_coordinator.dart';
-import '../completion/puzzle_complete_ripple_controller.dart';
 import 'puzzle_piece_content.dart';
 import 'word_completion_burst.dart';
 
@@ -39,8 +37,6 @@ class PuzzleChunksLayer extends StatefulWidget {
     this.onDragEnd,
     this.hintHighlightedPieceIds = const {},
     this.wordCompletionBurstEnabled = true,
-    this.puzzleRippleOrigin,
-    this.onPuzzleRippleComplete,
   });
 
   final int boardRows;
@@ -58,8 +54,6 @@ class PuzzleChunksLayer extends StatefulWidget {
   final VoidCallback? onDragEnd;
   final Set<String> hintHighlightedPieceIds;
   final bool wordCompletionBurstEnabled;
-  final BoardCellPosition? puzzleRippleOrigin;
-  final VoidCallback? onPuzzleRippleComplete;
 
   @override
   State<PuzzleChunksLayer> createState() => _PuzzleChunksLayerState();
@@ -83,10 +77,6 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer>
   Object? _introPiecesIdentity;
   int _introStartRequestId = 0;
 
-  PuzzleCompleteRippleController? _rippleController;
-  BoardCellPosition? _activeRippleOrigin;
-  bool _rippleCompleteNotified = false;
-
   bool get _isDragLocked => _draggedPieceId != null;
 
   bool get _isIntroActive =>
@@ -106,68 +96,7 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer>
   void dispose() {
     _introStartRequestId++;
     _introCoordinator?.dispose();
-    _disposeRippleController();
     super.dispose();
-  }
-
-  void _disposeRippleController() {
-    _rippleController?.dispose();
-    _rippleController = null;
-  }
-
-  void _maybeStartPuzzleRipple() {
-    final origin = widget.puzzleRippleOrigin;
-    if (origin == null || origin == _activeRippleOrigin) {
-      return;
-    }
-
-    _disposeRippleController();
-    _activeRippleOrigin = origin;
-    _rippleCompleteNotified = false;
-
-    final playAreaCells = buildPlayAreaLetterMap(
-      _pieces,
-      boardRows: widget.boardRows,
-      boardCols: widget.boardCols,
-    ).keys.toSet();
-    final hopDistances = computeConnectedRippleHopDistances(
-      origin: origin,
-      playAreaCells: playAreaCells,
-    );
-
-    if (hopDistances.isEmpty) {
-      _notifyRippleComplete();
-      return;
-    }
-
-    _rippleController = PuzzleCompleteRippleController(
-      vsync: this,
-      hopDistances: hopDistances,
-      onTick: () {
-        if (mounted) {
-          setState(() {});
-        }
-      },
-      onComplete: () {
-        if (!mounted) {
-          return;
-        }
-        setState(() {});
-        _notifyRippleComplete();
-      },
-    )..start();
-  }
-
-  void _notifyRippleComplete() {
-    if (_rippleCompleteNotified) {
-      return;
-    }
-    _rippleCompleteNotified = true;
-    widget.onPuzzleRippleComplete?.call();
-  }
-
-  double _rippleIntensityAt(BoardCellPosition cell) {
-    return _rippleController?.intensityAt(cell) ?? 0;
   }
 
   void _initIntroCoordinator() {
@@ -265,10 +194,6 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer>
     } else if (!widget.introAnimationEnabled && _introCoordinator?.isRunning == true) {
       _introCoordinator?.disposeTicker();
       _introStartedForCurrentPieces = false;
-    }
-
-    if (widget.puzzleRippleOrigin != oldWidget.puzzleRippleOrigin) {
-      _maybeStartPuzzleRipple();
     }
   }
 
@@ -480,7 +405,6 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer>
     PuzzlePieceVisualMode visualMode = PuzzlePieceVisualMode.real,
     bool isDragging = false,
     bool? isCompleted,
-    double Function(BoardCellPosition boardCell)? rippleIntensityForCell,
   }) {
     final tileSize = widget.tileSize;
     final completed = isCompleted ?? piece.isCompletedWordGroup;
@@ -495,15 +419,7 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer>
       isCompleted: completed,
       isHintHighlighted: isHintHighlighted,
       connectionSeamOpacity: connectionSeamOpacity,
-      rippleIntensityForCell: rippleIntensityForCell,
     );
-  }
-
-  double Function(BoardCellPosition boardCell)? get _rippleIntensityLookup {
-    if (_rippleController == null) {
-      return null;
-    }
-    return _rippleIntensityAt;
   }
 
   Widget _buildPiece(PuzzlePiece piece) {
@@ -576,7 +492,6 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer>
         isHintHighlighted: isHintHighlighted,
         pieceSize: pieceSize,
         isDragging: isActive,
-        rippleIntensityForCell: _rippleIntensityLookup,
       );
     }
 
@@ -603,7 +518,6 @@ class _PuzzleChunksLayerState extends State<PuzzleChunksLayer>
                             pieceSize: pieceSize,
                             isDragging: isActive,
                             connectionSeamOpacity: 1 - progress,
-                            rippleIntensityForCell: _rippleIntensityLookup,
                           ),
                   );
                 },
