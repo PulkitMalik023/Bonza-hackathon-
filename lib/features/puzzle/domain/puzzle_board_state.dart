@@ -35,8 +35,7 @@ List<PuzzlePiece> activePlayAreaPieces(
 }) {
   return [
     for (final piece in pieces)
-      if (isPieceOnBoard(piece, boardRows, boardCols) &&
-          (piece.isCompletedWordGroup || !isPieceAtSpawn(piece)))
+      if (isPieceOnBoard(piece, boardRows, boardCols))
         piece,
   ];
 }

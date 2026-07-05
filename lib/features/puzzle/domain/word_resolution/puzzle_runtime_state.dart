@@ -72,7 +72,7 @@ PuzzleRuntimeState rebuildRuntimeBoardState({
     if (piece.isCompletedWordGroup) {
       continue;
     }
-    if (!isPieceOnBoard(piece, boardRows, boardCols) || isPieceAtSpawn(piece)) {
+    if (!isPieceOnBoard(piece, boardRows, boardCols)) {
       continue;
     }
 
@@ -149,7 +149,7 @@ PuzzleRuntimeState rebuildRuntimeBoardState({
     if (piece.isCompletedWordGroup) {
       continue;
     }
-    if (!isPieceAtSpawn(piece)) {
+    if (isPieceOnBoard(piece, boardRows, boardCols)) {
       continue;
     }
 

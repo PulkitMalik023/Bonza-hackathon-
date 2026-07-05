@@ -1,0 +1,21 @@
+{
+  "puzzleId": 7,
+  "category": "Can Be Broken",
+  "words": ["HEART", "RECORD", "PROMISE", "WINDOW", "RULE"],
+  "enabled": true,
+  "placements": [
+    { "word": "HEART", "row": 0, "col": 0, "direction": "vertical" },
+    { "word": "RECORD", "row": 3, "col": 0, "direction": "horizontal" },
+    { "word": "PROMISE", "row": 1, "col": 3, "direction": "vertical" },
+    { "word": "WINDOW", "row": 5, "col": 2, "direction": "horizontal" },
+    { "word": "RULE", "row": 7, "col": 0, "direction": "horizontal" }
+  ],
+  "chunks": [
+    [[5, 2, "W"], [5, 3, "I"], [6, 3, "S"], [7, 2, "L"], [7, 3, "E"]],
+    [[0, 0, "H"], [1, 0, "E"]],
+    [[1, 3, "P"], [2, 3, "R"], [3, 3, "O"], [4, 3, "M"], [3, 4, "R"], [3, 5, "D"]],
+    [[5, 4, "N"], [5, 5, "D"], [5, 6, "O"], [5, 7, "W"]],
+    [[7, 0, "R"], [7, 1, "U"]],
+    [[2, 0, "A"], [3, 0, "R"], [4, 0, "T"], [3, 1, "E"], [3, 2, "C"]]
+  ]
+}

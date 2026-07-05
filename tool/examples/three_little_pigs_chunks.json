@@ -1,0 +1,18 @@
+{
+  "puzzleId": 9,
+  "category": "3 Little Pigs",
+  "words": ["BRICKS", "STRAW", "STICKS"],
+  "enabled": true,
+  "placements": [
+    { "word": "BRICKS", "row": 3, "col": 0, "direction": "horizontal" },
+    { "word": "STRAW", "row": 1, "col": 1, "direction": "vertical" },
+    { "word": "STICKS", "row": 0, "col": 3, "direction": "vertical" }
+  ],
+  "chunks": [
+    [[1, 1, "S"], [2, 1, "T"], [3, 1, "R"], [3, 0, "B"]],
+    [[3, 4, "K"], [3, 5, "S"]],
+    [[4, 1, "A"], [5, 1, "W"]],
+    [[3, 2, "I"], [3, 3, "C"], [4, 3, "K"], [5, 3, "S"]],
+    [[0, 3, "S"], [1, 3, "T"], [2, 3, "I"]]
+  ]
+}
