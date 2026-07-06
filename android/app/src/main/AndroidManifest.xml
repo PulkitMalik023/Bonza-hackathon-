@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="jam_pro"
+        android:label="Jam Pro"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

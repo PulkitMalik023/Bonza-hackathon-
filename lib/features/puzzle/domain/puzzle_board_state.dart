@@ -174,7 +174,34 @@ Map<BoardCellPosition, PuzzlePiece> buildBoardCellOwnershipMap(
   return ownership;
 }
 
-Map<BoardCellPosition, String> expandToContributingComponentCells({
+Map<BoardCellPosition, String> expandToContributingChunkCells({
+  required Map<BoardCellPosition, String> seedCells,
+  required Set<String> contributingChunkIds,
+  required List<PuzzlePiece> pieces,
+}) {
+  final expanded = Map<BoardCellPosition, String>.from(seedCells);
+
+  for (final piece in pieces) {
+    if (piece.isCompletedWordGroup) {
+      continue;
+    }
+    if (!contributingChunkIds.contains(piece.chunkId)) {
+      continue;
+    }
+
+    for (final cell in piece.cells) {
+      final position = BoardCellPosition(
+        row: piece.anchorRow + cell.rowOffset,
+        col: piece.anchorCol + cell.colOffset,
+      );
+      expanded[position] = cell.letter;
+    }
+  }
+
+  return expanded;
+}
+
+Map<BoardCellPosition, String> expandMatchedLineCellsToOwnerPieces({
   required Iterable<BoardCellPosition> matchedCells,
   required List<PuzzlePiece> pieces,
   required Map<BoardCellPosition, String> playAreaBoard,
@@ -183,12 +210,13 @@ Map<BoardCellPosition, String> expandToContributingComponentCells({
   final expanded = <BoardCellPosition, String>{};
 
   for (final cell in matchedCells) {
+    final letter = playAreaBoard[cell];
+    if (letter != null) {
+      expanded[cell] = letter;
+    }
+
     final owner = ownership[cell];
-    if (owner == null) {
-      final letter = playAreaBoard[cell];
-      if (letter != null) {
-        expanded[cell] = letter;
-      }
+    if (owner == null || owner.isCompletedWordGroup) {
       continue;
     }
 

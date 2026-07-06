@@ -156,6 +156,45 @@ Set<String> solvedWordIdsExcept(
   };
 }
 
+String eastStChunkId(PuzzleLayoutMetadata metadata) {
+  final eastId = wordIdForText(metadata, 'EAST')!;
+  final indexMap = metadata.wordCellIndexMap[eastId]!;
+
+  for (final entry in metadata.wordToChunkCoverage[eastId]!) {
+    for (final cellId in entry.cellIdsForThisWord) {
+      if ((indexMap[cellId] ?? -1) >= 2) {
+        return entry.chunkId;
+      }
+    }
+  }
+
+  throw StateError('EAST ST chunk not found');
+}
+
+List<PuzzlePiece> directionsPiecesEastNeedsSt(
+  PuzzleLayoutMetadata metadata,
+) {
+  final pieces = connectedCrosswordPieces(metadata: metadata);
+  final stChunkId = eastStChunkId(metadata);
+
+  final updated = <PuzzlePiece>[];
+  for (final piece in pieces) {
+    if (piece.chunkId == stChunkId) {
+      updated.add(
+        PuzzlePiece.fromChunk(
+          metadata.chunkById[piece.chunkId]!.chunk,
+          anchorRow: 10,
+          anchorCol: 0,
+        ),
+      );
+    } else {
+      updated.add(piece);
+    }
+  }
+
+  return piecesMovedOnBoard(updated);
+}
+
 void main() {
   test('returns null when all words are solved', () {
     final metadata = cutleryMetadata();
@@ -329,25 +368,42 @@ void main() {
     expect(hint.targetWordId, forkWordId);
   });
 
-  test('crossword DAFFODIL first hint targets DAFFODIL with word-scoped labels', () {
+  test('crossword hint prioritizes word with longest letter prefix', () {
     final metadata = flowersCrosswordMetadata();
     final daffodilChunkIds = orderedChunkIdsForWord(metadata, 'DAFFODIL');
     expect(daffodilChunkIds.length, greaterThanOrEqualTo(2));
 
-    final pieces = scatteredPieces(metadata: metadata);
+    final allPieces = scatteredPieces(metadata: metadata);
+    final daffodilPrefixPieces = wordPiecesWithConnectedPrefix(
+      metadata: metadata,
+      wordText: 'DAFFODIL',
+      connectedChunkCount: 1,
+    );
+    final prefixByChunkId = {
+      for (final piece in daffodilPrefixPieces) piece.chunkId: piece,
+    };
+
+    final pieces = piecesMovedOnBoard([
+      for (final piece in allPieces)
+        if (prefixByChunkId.containsKey(piece.chunkId))
+          prefixByChunkId[piece.chunkId]!
+        else
+          piece,
+    ]);
+
     final hint = suggestNextConnectHint(
       pieces: pieces,
       metadata: metadata,
-      solvedWordIds: const {},
+      solvedWordIds: solvedWordIdsExcept(metadata, 'DAFFODIL'),
     );
 
     expect(hint, isNotNull);
     expect(hint!.targetWord, 'DAFFODIL');
-    expect(hint.targetWordId, metadata.targetWordIds.first);
+    expect(hint.targetWordId, wordIdForText(metadata, 'DAFFODIL'));
 
     final first = pieceForChunkId(pieces, daffodilChunkIds[0])!;
     final second = pieceForChunkId(pieces, daffodilChunkIds[1])!;
-    expect(hint.highlightedPieceIds, {first.id, second.id});
+    expect(hint.highlightedPieceIds, containsAll({first.id, second.id}));
     expect(hint.message, contains('to spell DAFFODIL'));
     expect(hint.pieceALabel, isNot(contains('Y')));
     expect(hint.pieceBLabel, isNot(contains('R')));
@@ -390,6 +446,59 @@ void main() {
 
     final boundary = pieceForChunkId(pieces, daffodilChunkIds[1])!;
     final next = pieceForChunkId(pieces, daffodilChunkIds[2])!;
-    expect(hint.highlightedPieceIds, {boundary.id, next.id});
+    expect(hint.highlightedPieceIds, containsAll({boundary.id, next.id}));
+    expect(hint.highlightedPieceIds.length, greaterThanOrEqualTo(2));
+  });
+
+  test('compass EAST hints join prefix pieces with isolated ST chunk', () {
+    final metadata = directionsMetadata();
+    final pieces = directionsPiecesEastNeedsSt(metadata);
+    final eastChunkIds = orderedChunkIdsForWord(metadata, 'EAST');
+    final stChunkId = eastStChunkId(metadata);
+
+    final hint = suggestNextConnectHint(
+      pieces: pieces,
+      metadata: metadata,
+      solvedWordIds: const {},
+    );
+
+    expect(hint, isNotNull);
+    expect(hint!.targetWord, 'EAST');
+    expect(hint.message, contains('to spell EAST'));
+    expect(hint.pieceBLabel, 'T');
+
+    final prefixPiece = pieceForChunkId(pieces, eastChunkIds.first)!;
+    final stPiece = pieceForChunkId(pieces, stChunkId)!;
+    expect(hint.highlightedPieceIds, containsAll({prefixPiece.id, stPiece.id}));
+  });
+
+  test('compass word priority picks EAST over fully connected directions', () {
+    final metadata = directionsMetadata();
+    final pieces = directionsPiecesEastNeedsSt(metadata);
+
+    final hint = suggestNextConnectHint(
+      pieces: pieces,
+      metadata: metadata,
+      solvedWordIds: const {},
+    );
+
+    expect(hint, isNotNull);
+    expect(hint!.targetWord, 'EAST');
+  });
+
+  test('compass focus advances when focused word has no remaining join', () {
+    final metadata = directionsMetadata();
+    final northId = wordIdForText(metadata, 'NORTH')!;
+    final pieces = directionsPiecesEastNeedsSt(metadata);
+
+    final hint = suggestNextConnectHint(
+      pieces: pieces,
+      metadata: metadata,
+      solvedWordIds: const {},
+      focusWordId: northId,
+    );
+
+    expect(hint, isNotNull);
+    expect(hint!.targetWord, 'EAST');
   });
 }

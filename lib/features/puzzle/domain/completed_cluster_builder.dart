@@ -75,7 +75,7 @@ List<CompletedCluster> buildCompletedClusters(
     final matchedCells = groupedMatchedCells[entry.key]!;
     return CompletedCluster(
       answers: entry.value,
-      cells: expandToContributingComponentCells(
+      cells: expandMatchedLineCellsToOwnerPieces(
         matchedCells: matchedCells,
         pieces: pieces,
         playAreaBoard: playAreaBoard,

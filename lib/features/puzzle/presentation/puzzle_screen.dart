@@ -409,10 +409,16 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     );
 
     if (hint == null) {
+      final unsolvedWordsRemain = metadata.targetWordIds
+          .any((wordId) => !_solvedWordIds.contains(wordId));
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('All words are complete!'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(
+            unsolvedWordsRemain
+                ? 'No hint available right now'
+                : 'All words are complete!',
+          ),
+          duration: const Duration(seconds: 2),
         ),
       );
       return;

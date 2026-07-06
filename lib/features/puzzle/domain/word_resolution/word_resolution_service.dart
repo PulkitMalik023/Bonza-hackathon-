@@ -580,11 +580,18 @@ Map<BoardCellPosition, String> _boardCellsForCluster({
     return cells;
   }
 
-  final playAreaBoard = buildPlayAreaLetterMap(pieces);
-  return expandToContributingComponentCells(
-    matchedCells: cells.keys,
+  final contributingChunkIds = {
+    ...cluster.contributingChunkIds,
+    for (final wordId in cluster.assignmentWordIds)
+      ...acceptedAssignments
+          .firstWhere((option) => option.wordId == wordId)
+          .contributingChunkIds,
+  };
+
+  return expandToContributingChunkCells(
+    seedCells: cells,
+    contributingChunkIds: contributingChunkIds,
     pieces: pieces,
-    playAreaBoard: playAreaBoard,
   );
 }
 
