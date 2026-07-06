@@ -1,0 +1,7 @@
+[
+  { "category": "Foods", "words": ["GRAIN", "BEANS", "CORN"] },
+  { "category": "Colors", "words": ["RED", "BLUE", "GREEN"] },
+  { "category": "Animals", "words": ["BEAR", "MOLE", "FROG"] },
+  { "category": "Weather", "words": ["RAIN", "SNOW", "WIND"] },
+  { "category": "Sports", "words": ["GOLF", "POLO", "YOGA"] }
+]

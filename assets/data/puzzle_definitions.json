@@ -3194,5 +3194,780 @@
         ]
       }
     ]
+  },
+  {
+    "puzzleId": 13,
+    "layout": {
+      "placements": [
+        {
+          "word": "BEANS",
+          "row": 4,
+          "col": 0,
+          "direction": "horizontal"
+        },
+        {
+          "word": "GRAIN",
+          "row": 0,
+          "col": 3,
+          "direction": "vertical"
+        },
+        {
+          "word": "CORN",
+          "row": 1,
+          "col": 1,
+          "direction": "horizontal"
+        }
+      ],
+      "cells": [
+        {
+          "row": 0,
+          "col": 3,
+          "letter": "G"
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "letter": "C"
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "letter": "O"
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "letter": "R"
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "letter": "N"
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "letter": "A"
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "letter": "I"
+        },
+        {
+          "row": 4,
+          "col": 0,
+          "letter": "B"
+        },
+        {
+          "row": 4,
+          "col": 1,
+          "letter": "E"
+        },
+        {
+          "row": 4,
+          "col": 2,
+          "letter": "A"
+        },
+        {
+          "row": 4,
+          "col": 3,
+          "letter": "N"
+        },
+        {
+          "row": 4,
+          "col": 4,
+          "letter": "S"
+        }
+      ]
+    },
+    "chunks": [
+      {
+        "id": "chunk_0",
+        "cells": [
+          {
+            "row": 1,
+            "col": 1,
+            "letter": "C"
+          },
+          {
+            "row": 1,
+            "col": 2,
+            "letter": "O"
+          }
+        ]
+      },
+      {
+        "id": "chunk_1",
+        "cells": [
+          {
+            "row": 0,
+            "col": 3,
+            "letter": "G"
+          },
+          {
+            "row": 1,
+            "col": 3,
+            "letter": "R"
+          },
+          {
+            "row": 1,
+            "col": 4,
+            "letter": "N"
+          }
+        ]
+      },
+      {
+        "id": "chunk_2",
+        "cells": [
+          {
+            "row": 2,
+            "col": 3,
+            "letter": "A"
+          },
+          {
+            "row": 3,
+            "col": 3,
+            "letter": "I"
+          }
+        ]
+      },
+      {
+        "id": "chunk_3",
+        "cells": [
+          {
+            "row": 4,
+            "col": 0,
+            "letter": "B"
+          },
+          {
+            "row": 4,
+            "col": 1,
+            "letter": "E"
+          },
+          {
+            "row": 4,
+            "col": 2,
+            "letter": "A"
+          }
+        ]
+      },
+      {
+        "id": "chunk_4",
+        "cells": [
+          {
+            "row": 4,
+            "col": 3,
+            "letter": "N"
+          },
+          {
+            "row": 4,
+            "col": 4,
+            "letter": "S"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "puzzleId": 14,
+    "layout": {
+      "placements": [
+        {
+          "word": "GREEN",
+          "row": 3,
+          "col": 0,
+          "direction": "horizontal"
+        },
+        {
+          "word": "BLUE",
+          "row": 0,
+          "col": 2,
+          "direction": "vertical"
+        },
+        {
+          "word": "RED",
+          "row": 3,
+          "col": 1,
+          "direction": "vertical"
+        }
+      ],
+      "cells": [
+        {
+          "row": 0,
+          "col": 2,
+          "letter": "B"
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "letter": "L"
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "letter": "U"
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "letter": "G"
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "letter": "R"
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "letter": "E"
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "letter": "E"
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "letter": "N"
+        },
+        {
+          "row": 4,
+          "col": 1,
+          "letter": "E"
+        },
+        {
+          "row": 5,
+          "col": 1,
+          "letter": "D"
+        }
+      ]
+    },
+    "chunks": [
+      {
+        "id": "chunk_0",
+        "cells": [
+          {
+            "row": 0,
+            "col": 2,
+            "letter": "B"
+          },
+          {
+            "row": 1,
+            "col": 2,
+            "letter": "L"
+          }
+        ]
+      },
+      {
+        "id": "chunk_1",
+        "cells": [
+          {
+            "row": 3,
+            "col": 3,
+            "letter": "E"
+          },
+          {
+            "row": 3,
+            "col": 4,
+            "letter": "N"
+          }
+        ]
+      },
+      {
+        "id": "chunk_2",
+        "cells": [
+          {
+            "row": 2,
+            "col": 2,
+            "letter": "U"
+          },
+          {
+            "row": 3,
+            "col": 2,
+            "letter": "E"
+          }
+        ]
+      },
+      {
+        "id": "chunk_3",
+        "cells": [
+          {
+            "row": 3,
+            "col": 0,
+            "letter": "G"
+          },
+          {
+            "row": 3,
+            "col": 1,
+            "letter": "R"
+          }
+        ]
+      },
+      {
+        "id": "chunk_4",
+        "cells": [
+          {
+            "row": 4,
+            "col": 1,
+            "letter": "E"
+          },
+          {
+            "row": 5,
+            "col": 1,
+            "letter": "D"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "puzzleId": 15,
+    "layout": {
+      "placements": [
+        {
+          "word": "BEAR",
+          "row": 3,
+          "col": 0,
+          "direction": "horizontal"
+        },
+        {
+          "word": "FROG",
+          "row": 2,
+          "col": 3,
+          "direction": "vertical"
+        },
+        {
+          "word": "MOLE",
+          "row": 0,
+          "col": 1,
+          "direction": "vertical"
+        }
+      ],
+      "cells": [
+        {
+          "row": 0,
+          "col": 1,
+          "letter": "M"
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "letter": "O"
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "letter": "L"
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "letter": "F"
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "letter": "B"
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "letter": "E"
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "letter": "A"
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "letter": "R"
+        },
+        {
+          "row": 4,
+          "col": 3,
+          "letter": "O"
+        },
+        {
+          "row": 5,
+          "col": 3,
+          "letter": "G"
+        }
+      ]
+    },
+    "chunks": [
+      {
+        "id": "chunk_0",
+        "cells": [
+          {
+            "row": 0,
+            "col": 1,
+            "letter": "M"
+          },
+          {
+            "row": 1,
+            "col": 1,
+            "letter": "O"
+          }
+        ]
+      },
+      {
+        "id": "chunk_1",
+        "cells": [
+          {
+            "row": 2,
+            "col": 1,
+            "letter": "L"
+          },
+          {
+            "row": 3,
+            "col": 0,
+            "letter": "B"
+          },
+          {
+            "row": 3,
+            "col": 1,
+            "letter": "E"
+          }
+        ]
+      },
+      {
+        "id": "chunk_2",
+        "cells": [
+          {
+            "row": 2,
+            "col": 3,
+            "letter": "F"
+          },
+          {
+            "row": 3,
+            "col": 2,
+            "letter": "A"
+          },
+          {
+            "row": 3,
+            "col": 3,
+            "letter": "R"
+          }
+        ]
+      },
+      {
+        "id": "chunk_3",
+        "cells": [
+          {
+            "row": 4,
+            "col": 3,
+            "letter": "O"
+          },
+          {
+            "row": 5,
+            "col": 3,
+            "letter": "G"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "puzzleId": 16,
+    "layout": {
+      "placements": [
+        {
+          "word": "RAIN",
+          "row": 1,
+          "col": 0,
+          "direction": "horizontal"
+        },
+        {
+          "word": "SNOW",
+          "row": 0,
+          "col": 3,
+          "direction": "vertical"
+        },
+        {
+          "word": "WIND",
+          "row": 3,
+          "col": 3,
+          "direction": "horizontal"
+        }
+      ],
+      "cells": [
+        {
+          "row": 0,
+          "col": 3,
+          "letter": "S"
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "letter": "R"
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "letter": "A"
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "letter": "I"
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "letter": "N"
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "letter": "O"
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "letter": "W"
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "letter": "I"
+        },
+        {
+          "row": 3,
+          "col": 5,
+          "letter": "N"
+        },
+        {
+          "row": 3,
+          "col": 6,
+          "letter": "D"
+        }
+      ]
+    },
+    "chunks": [
+      {
+        "id": "chunk_0",
+        "cells": [
+          {
+            "row": 1,
+            "col": 0,
+            "letter": "R"
+          },
+          {
+            "row": 1,
+            "col": 1,
+            "letter": "A"
+          },
+          {
+            "row": 1,
+            "col": 2,
+            "letter": "I"
+          }
+        ]
+      },
+      {
+        "id": "chunk_1",
+        "cells": [
+          {
+            "row": 0,
+            "col": 3,
+            "letter": "S"
+          },
+          {
+            "row": 1,
+            "col": 3,
+            "letter": "N"
+          },
+          {
+            "row": 2,
+            "col": 3,
+            "letter": "O"
+          }
+        ]
+      },
+      {
+        "id": "chunk_2",
+        "cells": [
+          {
+            "row": 3,
+            "col": 3,
+            "letter": "W"
+          },
+          {
+            "row": 3,
+            "col": 4,
+            "letter": "I"
+          }
+        ]
+      },
+      {
+        "id": "chunk_3",
+        "cells": [
+          {
+            "row": 3,
+            "col": 5,
+            "letter": "N"
+          },
+          {
+            "row": 3,
+            "col": 6,
+            "letter": "D"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "puzzleId": 17,
+    "layout": {
+      "placements": [
+        {
+          "word": "GOLF",
+          "row": 3,
+          "col": 0,
+          "direction": "horizontal"
+        },
+        {
+          "word": "POLO",
+          "row": 0,
+          "col": 1,
+          "direction": "vertical"
+        },
+        {
+          "word": "YOGA",
+          "row": 1,
+          "col": 0,
+          "direction": "horizontal"
+        }
+      ],
+      "cells": [
+        {
+          "row": 0,
+          "col": 1,
+          "letter": "P"
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "letter": "Y"
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "letter": "O"
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "letter": "G"
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "letter": "A"
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "letter": "L"
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "letter": "G"
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "letter": "O"
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "letter": "L"
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "letter": "F"
+        }
+      ]
+    },
+    "chunks": [
+      {
+        "id": "chunk_0",
+        "cells": [
+          {
+            "row": 1,
+            "col": 2,
+            "letter": "G"
+          },
+          {
+            "row": 1,
+            "col": 3,
+            "letter": "A"
+          }
+        ]
+      },
+      {
+        "id": "chunk_1",
+        "cells": [
+          {
+            "row": 0,
+            "col": 1,
+            "letter": "P"
+          },
+          {
+            "row": 1,
+            "col": 0,
+            "letter": "Y"
+          },
+          {
+            "row": 1,
+            "col": 1,
+            "letter": "O"
+          }
+        ]
+      },
+      {
+        "id": "chunk_2",
+        "cells": [
+          {
+            "row": 2,
+            "col": 1,
+            "letter": "L"
+          },
+          {
+            "row": 3,
+            "col": 0,
+            "letter": "G"
+          },
+          {
+            "row": 3,
+            "col": 1,
+            "letter": "O"
+          }
+        ]
+      },
+      {
+        "id": "chunk_3",
+        "cells": [
+          {
+            "row": 3,
+            "col": 2,
+            "letter": "L"
+          },
+          {
+            "row": 3,
+            "col": 3,
+            "letter": "F"
+          }
+        ]
+      }
+    ]
   }
 ]
