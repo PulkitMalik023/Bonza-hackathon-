@@ -87,6 +87,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   bool _applyingUndo = false;
   PuzzleConnectHint? _activeHint;
   Set<String> _hintHighlightedPieceIds = {};
+  String? _hintFocusWordId;
   Timer? _hintClearTimer;
   int _resolutionStepCounter = 0;
 
@@ -404,6 +405,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       pieces: _playPieces,
       metadata: metadata,
       solvedWordIds: _solvedWordIds,
+      focusWordId: _hintFocusWordId,
     );
 
     if (hint == null) {
@@ -418,6 +420,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
     _hintClearTimer?.cancel();
     setState(() {
+      _hintFocusWordId ??= hint.targetWordId;
       _activeHint = hint;
       _hintHighlightedPieceIds = hint.highlightedPieceIds;
     });
@@ -467,7 +470,15 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     _interactionEnabled = false;
     _lastEvaluatedPiecesSnapshot = null;
     _moveHistory.clear();
+    _hintFocusWordId = null;
     _clearActiveHint();
+  }
+
+  void _syncHintFocusWithSolvedWords() {
+    final focusWordId = _hintFocusWordId;
+    if (focusWordId != null && _solvedWordIds.contains(focusWordId)) {
+      _hintFocusWordId = null;
+    }
   }
 
   void _onIntroComplete() {
@@ -601,6 +612,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       _solvedWordIds = result.solvedWordIds;
       _reservedCellIds = result.reservedCellIds;
       _solvedAssignments = result.solvedAssignments;
+      _syncHintFocusWithSolvedWords();
       if (result.puzzleComplete) {
         _puzzleCompletionHandled = true;
         _introAnimationPending = false;

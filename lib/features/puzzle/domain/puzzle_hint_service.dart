@@ -13,6 +13,7 @@ extension ConnectDirectionLabel on ConnectDirection {
 
 class PuzzleConnectHint {
   const PuzzleConnectHint({
+    required this.targetWordId,
     required this.targetWord,
     required this.pieceAId,
     required this.pieceBId,
@@ -22,6 +23,7 @@ class PuzzleConnectHint {
     required this.message,
   });
 
+  final String targetWordId;
   final String targetWord;
   final String pieceAId;
   final String pieceBId;
@@ -37,6 +39,7 @@ PuzzleConnectHint? suggestNextConnectHint({
   required List<PuzzlePiece> pieces,
   required PuzzleLayoutMetadata metadata,
   required Set<String> solvedWordIds,
+  String? focusWordId,
 }) {
   final unsolvedWordIds = metadata.targetWordIds
       .where((wordId) => !solvedWordIds.contains(wordId))
@@ -64,32 +67,25 @@ PuzzleConnectHint? suggestNextConnectHint({
     chunkToComponent[placed.chunkId] = placed.componentId;
   }
 
-  unsolvedWordIds.sort((a, b) {
-    final aScore = _placedChunkCount(
-      wordId: a,
+  if (focusWordId != null && !solvedWordIds.contains(focusWordId)) {
+    final focusedHint = _hintForWord(
+      wordId: focusWordId,
       metadata: metadata,
+      pieceByChunkId: pieceByChunkId,
       chunkToComponent: chunkToComponent,
     );
-    final bScore = _placedChunkCount(
-      wordId: b,
-      metadata: metadata,
-      chunkToComponent: chunkToComponent,
-    );
-    return bScore.compareTo(aScore);
-  });
+    if (focusedHint != null) {
+      return focusedHint;
+    }
+  }
 
-  for (final wordId in unsolvedWordIds) {
-    final word = metadata.wordById[wordId]!;
-    final chunkIds = metadata.wordToChunkCoverage[wordId]
-            ?.map((entry) => entry.chunkId)
-            .toSet()
-            .toList() ??
-        const [];
+  for (final wordId in metadata.targetWordIds) {
+    if (solvedWordIds.contains(wordId)) {
+      continue;
+    }
 
     final connectHint = _connectHintForWord(
       wordId: wordId,
-      wordText: word.text,
-      chunkIds: chunkIds,
       metadata: metadata,
       pieceByChunkId: pieceByChunkId,
       chunkToComponent: chunkToComponent,
@@ -97,9 +93,23 @@ PuzzleConnectHint? suggestNextConnectHint({
     if (connectHint != null) {
       return connectHint;
     }
+  }
+
+  for (final wordId in metadata.targetWordIds) {
+    if (solvedWordIds.contains(wordId)) {
+      continue;
+    }
+
+    final word = metadata.wordById[wordId]!;
+    final chunkIds = _sortedChunkIdsForWord(
+      wordId: wordId,
+      metadata: metadata,
+    );
 
     final alignHint = _alignHintForWord(
+      wordId: wordId,
       word: word,
+      metadata: metadata,
       pieceByChunkId: pieceByChunkId,
       chunkIds: chunkIds,
     );
@@ -111,63 +121,191 @@ PuzzleConnectHint? suggestNextConnectHint({
   return null;
 }
 
-int _placedChunkCount({
+PuzzleConnectHint? _hintForWord({
   required String wordId,
-  required PuzzleLayoutMetadata metadata,
-  required Map<String, String> chunkToComponent,
-}) {
-  final chunkIds =
-      metadata.wordToChunkCoverage[wordId]?.map((entry) => entry.chunkId) ??
-          const [];
-  return chunkIds.where(chunkToComponent.containsKey).length;
-}
-
-PuzzleConnectHint? _connectHintForWord({
-  required String wordId,
-  required String wordText,
-  required List<String> chunkIds,
   required PuzzleLayoutMetadata metadata,
   required Map<String, PuzzlePiece> pieceByChunkId,
   required Map<String, String> chunkToComponent,
 }) {
-  final adjacentPairs = _layoutAdjacentChunkPairs(
-    chunkIds: chunkIds,
+  final connectHint = _connectHintForWord(
+    wordId: wordId,
+    metadata: metadata,
+    pieceByChunkId: pieceByChunkId,
+    chunkToComponent: chunkToComponent,
+  );
+  if (connectHint != null) {
+    return connectHint;
+  }
+
+  final word = metadata.wordById[wordId];
+  if (word == null) {
+    return null;
+  }
+
+  return _alignHintForWord(
+    wordId: wordId,
+    word: word,
+    metadata: metadata,
+    pieceByChunkId: pieceByChunkId,
+    chunkIds: _sortedChunkIdsForWord(
+      wordId: wordId,
+      metadata: metadata,
+    ),
+  );
+}
+
+List<String> _sortedChunkIdsForWord({
+  required String wordId,
+  required PuzzleLayoutMetadata metadata,
+}) {
+  final coverage = metadata.wordToChunkCoverage[wordId] ?? const [];
+  final cellIndexMap = metadata.wordCellIndexMap[wordId] ?? const {};
+
+  final entries = [...coverage];
+  entries.sort((a, b) {
+    final aMin = _minLetterIndex(a, cellIndexMap);
+    final bMin = _minLetterIndex(b, cellIndexMap);
+    return aMin.compareTo(bMin);
+  });
+
+  return entries.map((entry) => entry.chunkId).toList();
+}
+
+int _minLetterIndex(
+  ChunkCoverageEntry entry,
+  Map<String, int> cellIndexMap,
+) {
+  var minIndex = 999;
+  for (final cellId in entry.cellIdsForThisWord) {
+    final index = cellIndexMap[cellId];
+    if (index != null && index < minIndex) {
+      minIndex = index;
+    }
+  }
+  return minIndex;
+}
+
+int _connectedPrefixEnd({
+  required List<String> orderedChunkIds,
+  required Map<String, String> chunkToComponent,
+  required PuzzleLayoutMetadata metadata,
+}) {
+  if (orderedChunkIds.isEmpty ||
+      !chunkToComponent.containsKey(orderedChunkIds.first)) {
+    return -1;
+  }
+
+  var prefixEnd = 0;
+  for (var index = 0; index < orderedChunkIds.length - 1; index++) {
+    final chunkAId = orderedChunkIds[index];
+    final chunkBId = orderedChunkIds[index + 1];
+    final componentA = chunkToComponent[chunkAId];
+    final componentB = chunkToComponent[chunkBId];
+    if (componentA == null || componentB == null || componentA != componentB) {
+      break;
+    }
+
+    final refA = metadata.chunkById[chunkAId];
+    final refB = metadata.chunkById[chunkBId];
+    if (refA == null || refB == null) {
+      break;
+    }
+
+    if (_chunkLayoutAdjacency(refA.chunk, refB.chunk, metadata) == null) {
+      break;
+    }
+
+    prefixEnd = index + 1;
+  }
+
+  return prefixEnd;
+}
+
+PuzzleConnectHint? _connectHintForWord({
+  required String wordId,
+  required PuzzleLayoutMetadata metadata,
+  required Map<String, PuzzlePiece> pieceByChunkId,
+  required Map<String, String> chunkToComponent,
+}) {
+  final wordText = metadata.wordById[wordId]?.text;
+  if (wordText == null) {
+    return null;
+  }
+
+  final orderedChunkIds = _sortedChunkIdsForWord(
+    wordId: wordId,
+    metadata: metadata,
+  );
+  if (orderedChunkIds.length < 2) {
+    return null;
+  }
+
+  final prefixEnd = _connectedPrefixEnd(
+    orderedChunkIds: orderedChunkIds,
+    chunkToComponent: chunkToComponent,
+    metadata: metadata,
+  );
+  if (prefixEnd >= orderedChunkIds.length - 1) {
+    return null;
+  }
+
+  final leftChunkIndex = prefixEnd < 0 ? 0 : prefixEnd;
+  final rightChunkIndex = prefixEnd + 1;
+  final leftChunkId = orderedChunkIds[leftChunkIndex];
+  final rightChunkId = orderedChunkIds[rightChunkIndex];
+
+  final leftComponent = chunkToComponent[leftChunkId];
+  final rightComponent = chunkToComponent[rightChunkId];
+  if (leftComponent != null &&
+      rightComponent != null &&
+      leftComponent == rightComponent) {
+    return null;
+  }
+
+  final pieceA = pieceByChunkId[leftChunkId];
+  final pieceB = pieceByChunkId[rightChunkId];
+  if (pieceA == null || pieceB == null) {
+    return null;
+  }
+
+  final refA = metadata.chunkById[leftChunkId];
+  final refB = metadata.chunkById[rightChunkId];
+  if (refA == null || refB == null) {
+    return null;
+  }
+
+  final direction = _chunkLayoutAdjacency(refA.chunk, refB.chunk, metadata);
+  if (direction == null) {
+    return null;
+  }
+
+  final labelA = _pieceLabelForWord(
+    piece: pieceA,
+    wordId: wordId,
+    metadata: metadata,
+  );
+  final labelB = _pieceLabelForWord(
+    piece: pieceB,
+    wordId: wordId,
     metadata: metadata,
   );
 
-  for (final pair in adjacentPairs) {
-    final componentA = chunkToComponent[pair.chunkAId];
-    final componentB = chunkToComponent[pair.chunkBId];
-    if (componentA == null || componentB == null) {
-      continue;
-    }
-    if (componentA == componentB) {
-      continue;
-    }
-
-    final pieceA = pieceByChunkId[pair.chunkAId];
-    final pieceB = pieceByChunkId[pair.chunkBId];
-    if (pieceA == null || pieceB == null) {
-      continue;
-    }
-
-    return PuzzleConnectHint(
-      targetWord: wordText,
-      pieceAId: pieceA.id,
-      pieceBId: pieceB.id,
-      pieceALabel: _pieceLabel(pieceA),
-      pieceBLabel: _pieceLabel(pieceB),
-      direction: pair.direction,
-      message:
-          'Join ${_pieceLabel(pieceA)} and ${_pieceLabel(pieceB)} ${pair.direction.adverb} to spell $wordText',
-    );
-  }
-
-  return null;
+  return PuzzleConnectHint(
+    targetWordId: wordId,
+    targetWord: wordText,
+    pieceAId: pieceA.id,
+    pieceBId: pieceB.id,
+    pieceALabel: labelA,
+    pieceBLabel: labelB,
+    direction: direction,
+    message: 'Join $labelA and $labelB ${direction.adverb} to spell $wordText',
+  );
 }
 
 PuzzleConnectHint? _alignHintForWord({
+  required String wordId,
   required FinalLayoutWord word,
+  required PuzzleLayoutMetadata metadata,
   required Map<String, PuzzlePiece> pieceByChunkId,
   required List<String> chunkIds,
 }) {
@@ -184,61 +322,62 @@ PuzzleConnectHint? _alignHintForWord({
       ? ConnectDirection.horizontal
       : ConnectDirection.vertical;
 
+  final label = _pieceLabelForWord(
+    piece: piece,
+    wordId: wordId,
+    metadata: metadata,
+  );
+
   return PuzzleConnectHint(
+    targetWordId: wordId,
     targetWord: word.text,
     pieceAId: piece.id,
     pieceBId: piece.id,
-    pieceALabel: _pieceLabel(piece),
-    pieceBLabel: _pieceLabel(piece),
+    pieceALabel: label,
+    pieceBLabel: label,
     direction: direction,
-    message: 'Align ${_pieceLabel(piece)} ${direction.adverb} to spell ${word.text}',
+    message: 'Align $label ${direction.adverb} to spell ${word.text}',
   );
 }
 
-class _AdjacentChunkPair {
-  const _AdjacentChunkPair({
-    required this.chunkAId,
-    required this.chunkBId,
-    required this.direction,
-  });
-
-  final String chunkAId;
-  final String chunkBId;
-  final ConnectDirection direction;
-}
-
-List<_AdjacentChunkPair> _layoutAdjacentChunkPairs({
-  required List<String> chunkIds,
+String _pieceLabelForWord({
+  required PuzzlePiece piece,
+  required String wordId,
   required PuzzleLayoutMetadata metadata,
 }) {
-  final pairs = <_AdjacentChunkPair>[];
-
-  for (var indexA = 0; indexA < chunkIds.length; indexA++) {
-    for (var indexB = indexA + 1; indexB < chunkIds.length; indexB++) {
-      final chunkAId = chunkIds[indexA];
-      final chunkBId = chunkIds[indexB];
-      final refA = metadata.chunkById[chunkAId];
-      final refB = metadata.chunkById[chunkBId];
-      if (refA == null || refB == null) {
-        continue;
-      }
-
-      final adjacency = _chunkLayoutAdjacency(refA.chunk, refB.chunk, metadata);
-      if (adjacency == null) {
-        continue;
-      }
-
-      pairs.add(
-        _AdjacentChunkPair(
-          chunkAId: chunkAId,
-          chunkBId: chunkBId,
-          direction: adjacency,
-        ),
-      );
-    }
+  final coverage = metadata.wordToChunkCoverage[wordId];
+  if (coverage == null) {
+    return _pieceLabel(piece);
   }
 
-  return pairs;
+  ChunkCoverageEntry? entry;
+  for (final candidate in coverage) {
+    if (candidate.chunkId == piece.chunkId) {
+      entry = candidate;
+      break;
+    }
+  }
+  if (entry == null) {
+    return _pieceLabel(piece);
+  }
+
+  final cellIndexMap = metadata.wordCellIndexMap[wordId] ?? const {};
+  final indexedLetters = <int, String>{};
+  for (final cellId in entry.cellIdsForThisWord) {
+    final letterIndex = cellIndexMap[cellId];
+    final letter = metadata.finalCellById[cellId]?.letter;
+    if (letterIndex == null || letter == null) {
+      continue;
+    }
+    indexedLetters[letterIndex] = letter;
+  }
+
+  if (indexedLetters.isEmpty) {
+    return _pieceLabel(piece);
+  }
+
+  final sortedIndexes = indexedLetters.keys.toList()..sort();
+  return sortedIndexes.map((index) => indexedLetters[index]!).join();
 }
 
 ConnectDirection? _chunkLayoutAdjacency(
